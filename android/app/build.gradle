@@ -1,0 +1,81 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// --- SOLUCIÓN CRÍTICA: Bloqueo de versiones inestables ---
+// Esto obliga a Flutter a usar versiones de AndroidX compatibles con AGP 8.6.0
+configurations.all {
+    resolutionStrategy {
+        // Forzamos browser a 1.8.0 (1.9.0 pide AGP 8.9.1)
+        force 'androidx.browser:browser:1.8.0'
+        
+        // Forzamos core a 1.15.0 (1.17.0 pide AGP 8.9.1)
+        force 'androidx.core:core:1.15.0'
+        force 'androidx.core:core-ktx:1.15.0'
+    }
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+android {
+    namespace "com.example.inparques"
+    
+    // Mantenemos 36 porque Kotlin 2.1.0 y los plugins lo requieren
+    compileSdk 36
+    
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.example.inparques"
+        
+        // Mantenemos 23 para compatibilidad con plugins
+        minSdkVersion flutter.minSdkVersion
+        
+        // Debe coincidir con compileSdk
+        targetSdkVersion 36
+        
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}

@@ -1,0 +1,53 @@
+name: inparques
+description: "Sistema de Gestion de Guardias Inparques"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Gestión de Estado
+  provider: ^6.1.1
+
+  # Base de Datos Local
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.20
+  path_provider: ^2.1.2
+  path: ^1.8.3
+
+  # Utilidades
+  intl: ^0.20.2
+  
+  # Archivos y PDF
+  file_picker: ^8.0.0 
+  url_launcher: ^6.2.5
+  pdf: ^3.10.0
+  printing: ^5.11.0
+  image_picker: ^1.2.1
+  archive: ^4.0.7
+  share_plus: ^12.0.1
+  collection: ^1.19.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  
+  # Generación de Código
+  build_runner: ^2.4.8
+  drift_dev: ^2.20.0
+
+flutter:
+  uses-material-design: true
+
+  # ⚠️ SECCIÓN CRÍTICA AGREGADA PARA CORREGIR EL ERROR "UNABLE TO LOAD ASSET"
+  # Asegúrate de que las carpetas existan físicamente en tu proyecto.
+  assets:
+    - assets/images/
+    - assets/database/

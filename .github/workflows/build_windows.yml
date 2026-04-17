@@ -1,0 +1,47 @@
+name: Build Windows Release (INPARQUES)
+
+# Este script se ejecutará automáticamente cuando hagas un push a la rama 'main'
+# También te permitirá ejecutarlo manualmente (workflow_dispatch)
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar para Windows
+    # Usamos una máquina virtual con Windows proporcionada por GitHub
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Clonar el código fuente
+        uses: actions/checkout@v4
+
+      - name: 🐦 Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Puedes especificar una versión si lo deseas, ej: flutter-version: '3.24.0'
+          cache: true
+
+      - name: ⚙️ Habilitar soporte para Windows
+        run: flutter config --enable-windows-desktop
+
+      - name: 📦 Instalar dependencias
+        run: flutter pub get
+
+      - name: 🏗️ Generar código de Drift (AppDatabase)
+        # CRÍTICO: Sin esto, fallará por no encontrar app_database.g.dart
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: 🚀 Compilar ejecutable (Release)
+        run: flutter build windows --release
+
+      - name: 💾 Guardar Ejecutable (Artefacto)
+        uses: actions/upload-artifact@v4
+        with:
+          name: inparques-windows-release
+          # Ruta donde Flutter Windows genera los ejecutables finales (.exe y .dlls)
+          path: build/windows/x64/runner/Release/
+          # El artefacto se mantendrá disponible para descargar por 15 días
+          retention-days: 15
