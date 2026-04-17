@@ -27,6 +27,10 @@ jobs:
       - name: ⚙️ Habilitar soporte para Windows
         run: flutter config --enable-windows-desktop
 
+      - name: 🏗️ Generar archivos nativos de Windows
+        # El servidor Windows genera su propia carpeta nativa compatible
+        run: flutter create --platforms windows .
+
       - name: 📦 Instalar dependencias
         run: flutter pub get
 
