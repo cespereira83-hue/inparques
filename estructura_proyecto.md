@@ -1,43 +1,9 @@
+# Estructura del Proyecto INPARQUES
+```text
 .
-├── .agents
-│   └── skills
-│       ├── code-review-excellence
-│       │   └── SKILL.md
-│       ├── flutter-animations
-│       │   ├── assets
-│       │   │   └── templates
-│       │   │       ├── explicit_animation.dart
-│       │   │       ├── hero_transition.dart
-│       │   │       ├── implicit_animation.dart
-│       │   │       └── staggered_animation.dart
-│       │   ├── references
-│       │   │   ├── curves.md
-│       │   │   ├── explicit.md
-│       │   │   ├── hero.md
-│       │   │   ├── implicit.md
-│       │   │   ├── physics.md
-│       │   │   └── staggered.md
-│       │   └── SKILL.md
-│       ├── inparques-pdf-manager
-│       │   └── SKILL.md
-│       ├── local-auth-inparques
-│       │   └── SKILL.md
-│       └── systematic-debugging
-│           ├── condition-based-waiting-example.ts
-│           ├── condition-based-waiting.md
-│           ├── CREATION-LOG.md
-│           ├── defense-in-depth.md
-│           ├── find-polluter.sh
-│           ├── root-cause-tracing.md
-│           ├── SKILL.md
-│           ├── test-academic.md
-│           ├── test-pressure-1.md
-│           ├── test-pressure-2.md
-│           └── test-pressure-3.md
 ├── analysis_options.yaml
 ├── assets
 │   ├── database
-│   │   └── .gitkeep
 │   ├── fonts
 │   └── images
 │       └── logo_inparques.png
@@ -45,23 +11,48 @@
 ├── contexto_codigo_inparques.md
 ├── contexto_nucleo_inparques.md
 ├── contexto_sistema.md
+├── crear_instalador.sh
 ├── data
 │   └── certificados
+├── debian-package
+│   ├── DEBIAN
+│   │   └── control
+│   ├── opt
+│   │   └── inparques
+│   │       ├── data
+│   │       │   ├── flutter_assets
+│   │       │   │   ├── AssetManifest.bin
+│   │       │   │   ├── assets
+│   │       │   │   │   ├── database
+│   │       │   │   │   └── images
+│   │       │   │   │       └── logo_inparques.png
+│   │       │   │   ├── FontManifest.json
+│   │       │   │   ├── fonts
+│   │       │   │   │   └── MaterialIcons-Regular.otf
+│   │       │   │   ├── NativeAssetsManifest.json
+│   │       │   │   ├── NOTICES.Z
+│   │       │   │   ├── shaders
+│   │       │   │   │   ├── ink_sparkle.frag
+│   │       │   │   │   └── stretch_effect.frag
+│   │       │   │   └── version.json
+│   │       │   └── icudtl.dat
+│   │       ├── inparques
+│   │       └── lib
+│   │           ├── libapp.so
+│   │           ├── libfile_selector_linux_plugin.so
+│   │           ├── libflutter_linux_gtk.so
+│   │           ├── libpdfium.so
+│   │           ├── libprinting_plugin.so
+│   │           ├── libsqlite3_flutter_libs_plugin.so
+│   │           └── liburl_launcher_linux_plugin.so
+│   └── usr
+│       └── share
+│           └── applications
+│               └── inparques.desktop
 ├── estructura.md
+├── estructura_proyecto.md
 ├── estructura.txt
-├── .flutter-plugins-dependencies
-├── .github
-│   └── workflows
-│       └── build_windows.yml
-├── .gitignore
-├── .idea
-│   ├── libraries
-│   │   ├── Dart_SDK.xml
-│   │   └── KotlinJavaRuntime.xml
-│   ├── modules.xml
-│   ├── runConfigurations
-│   │   └── main_dart.xml
-│   └── workspace.xml
+├── inparques-bailadores.deb
 ├── inparques.iml
 ├── lib
 │   ├── main.dart
@@ -91,6 +82,12 @@
 │       │   │       │   ├── recovery_screen.dart
 │       │   │       │   └── register_screen.dart
 │       │   │       └── widgets
+│       │   ├── backup
+│       │   │   ├── logic
+│       │   │   │   └── backup_controller.dart
+│       │   │   └── presentation
+│       │   │       └── screens
+│       │   │           └── backup_screen.dart
 │       │   ├── calendar
 │       │   │   ├── logic
 │       │   │   │   └── calendar_controller.dart
@@ -152,11 +149,13 @@
 │       │               └── report_config_screen.dart
 │       └── shared
 │           └── widgets
-├── .metadata
 ├── pubspec.lock
 ├── pubspec.yaml
 ├── pubspec.yaml.backup
 ├── README.md
+├── releases
+│   ├── inparques-bailadores_1.0.0_amd64.deb
+│   └── inparques-bailadores_1.0.0.apk
 ├── repomix-output.xml
 ├── sistema_gestion_guardias.iml
 ├── skills-lock.json
@@ -167,4 +166,5 @@
 └── test
     └── widget_test.dart
 
-75 directories, 93 files
+80 directories, 85 files
+```

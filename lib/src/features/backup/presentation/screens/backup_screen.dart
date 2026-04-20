@@ -1,8 +1,7 @@
-import 'dart:io'; // CORRECCIÓN: Para usar exit(0)
+import 'dart:io'; // ¡ESTA ES LA LÍNEA QUE FALTABA PARA EL EXIT!
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// CORRECCIÓN: Ruta de importación absoluta adaptada a la estructura de tu proyecto
-import '../../../backup/logic/backup_controller.dart';
+import '../../logic/backup_controller.dart'; // ¡RUTA CORREGIDA!
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
@@ -77,7 +76,7 @@ class _BackupScreenState extends State<BackupScreen> {
                 "La base de datos ha sido reemplazada. La aplicación debe cerrarse para cargar los nuevos datos."),
             actions: [
               FilledButton(
-                  onPressed: () => exit(0),
+                  onPressed: () => exit(0), // ESTO REQUIERE DART:IO
                   child: const Text("Cerrar Aplicación")),
             ],
           ),

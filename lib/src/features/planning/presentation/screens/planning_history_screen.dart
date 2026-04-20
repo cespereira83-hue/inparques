@@ -12,12 +12,12 @@ import 'package:path/path.dart' as p;
 
 import '../../logic/planning_controller.dart';
 import '../../../../data/local/app_database.dart';
-import '../../../reports/logic/pdf_generator_service.dart';
 import '../../../incidents/logic/acta_generator.dart';
+import '../../../reports/logic/weekly_report_generator.dart';
 import 'create_activity_screen.dart';
 
 // ============================================================================
-// HELPER PARA EXPORTACIÓN: Súper Diálogo (Imprimir, Guardar Como, Descarga)
+// HELPER PARA EXPORTACIÓN
 // ============================================================================
 Future<void> _mostrarOpcionesSalidaPdf(
   BuildContext context,
@@ -41,10 +41,9 @@ Future<void> _mostrarOpcionesSalidaPdf(
           onPressed: () {
             Navigator.pop(ctx);
             Printing.layoutPdf(
-              onLayout: (_) async => bytes,
-              name: nombreArchivo,
-              format: format,
-            );
+                onLayout: (_) async => bytes,
+                name: nombreArchivo,
+                format: format);
           },
         ),
         FilledButton.tonalIcon(
@@ -60,20 +59,15 @@ Future<void> _mostrarOpcionesSalidaPdf(
             );
 
             if (outputFile != null) {
-              if (!outputFile.toLowerCase().endsWith('.pdf')) {
+              if (!outputFile.toLowerCase().endsWith('.pdf'))
                 outputFile += '.pdf';
-              }
               final file = File(outputFile);
               await file.writeAsBytes(bytes);
 
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text("✅ Archivo guardado en:\n$outputFile"),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                    backgroundColor: Colors.green));
               }
             }
           },
@@ -93,21 +87,15 @@ Future<void> _mostrarOpcionesSalidaPdf(
               await file.writeAsBytes(bytes);
 
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("✅ Guardado automáticamente en:\n$filePath"),
-                    backgroundColor: Colors.green.shade700,
-                    duration: const Duration(seconds: 5),
-                  ),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("✅ Guardado en:\n$filePath"),
+                    backgroundColor: Colors.green.shade700));
               }
             } catch (e) {
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text("Error al guardar: $e"),
-                      backgroundColor: Colors.red),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Error al guardar: $e"),
+                    backgroundColor: Colors.red));
               }
             }
           },
@@ -125,18 +113,15 @@ class PlanningHistoryScreen extends StatefulWidget {
 }
 
 class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
-  // CONTROLADORES DE BÚSQUEDA GLOBAL
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    // Filtro as-you-type
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase().trim();
-      });
+      setState(
+          () => _searchQuery = _searchController.text.toLowerCase().trim());
     });
   }
 
@@ -155,26 +140,8 @@ class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
           title: const Text("Gestión de Actividades"),
           backgroundColor: Colors.green.shade800,
           foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.help_outline),
-              tooltip: "Ayuda",
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        "Usa los botones de impresora en cada grupo para generar reportes."),
-                  ),
-                );
-              },
-            ),
-          ],
-          // =========================================================
-          // BUSCADOR INTELIGENTE EN EL APPBAR
-          // =========================================================
           bottom: PreferredSize(
-            preferredSize:
-                const Size.fromHeight(110), // Altura para Buscador + Tabs
+            preferredSize: const Size.fromHeight(110),
             child: Column(
               children: [
                 Padding(
@@ -183,9 +150,8 @@ class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20)),
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
@@ -198,8 +164,7 @@ class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
                             ? IconButton(
                                 icon: const Icon(Icons.clear,
                                     color: Colors.grey, size: 20),
-                                onPressed: () => _searchController.clear(),
-                              )
+                                onPressed: () => _searchController.clear())
                             : null,
                         border: InputBorder.none,
                         contentPadding:
@@ -226,7 +191,6 @@ class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
         ),
         body: TabBarView(
           children: [
-            // Pasamos el query a cada pestaña para que filtre localmente
             _OrdinariasTab(searchQuery: _searchQuery),
             _PernoctasTab(searchQuery: _searchQuery),
             _IncidenciasTab(searchQuery: _searchQuery),
@@ -238,7 +202,7 @@ class _PlanningHistoryScreenState extends State<PlanningHistoryScreen> {
 }
 
 // ============================================================================
-// TAB 1: ORDINARIAS (Agrupado por SEMANA y Filtrable)
+// TAB 1: ORDINARIAS
 // ============================================================================
 
 class _OrdinariasTab extends StatefulWidget {
@@ -250,13 +214,11 @@ class _OrdinariasTab extends StatefulWidget {
 }
 
 class _OrdinariasTabState extends State<_OrdinariasTab> {
-  DateTime _getMonday(DateTime date) {
-    return date.subtract(Duration(days: date.weekday - 1));
-  }
+  DateTime _getMonday(DateTime date) =>
+      date.subtract(Duration(days: date.weekday - 1));
 
   Future<void> _imprimirSemana(BuildContext context, DateTime lunes) async {
     final domingoSugerido = lunes.add(const Duration(days: 6));
-
     final pickedRange = await showDateRangePicker(
       context: context,
       initialDateRange: DateTimeRange(start: lunes, end: domingoSugerido),
@@ -265,63 +227,50 @@ class _OrdinariasTabState extends State<_OrdinariasTab> {
       helpText: "CONFIRMAR SEMANA A EXPORTAR",
       saveText: "GENERAR ROL",
       locale: const Locale('es', 'ES'),
-      builder: (context, child) {
-        return Theme(
+      builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2E7D32),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
+              colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF2E7D32), onPrimary: Colors.white)),
+          child: child!),
     );
 
     if (pickedRange == null || !mounted) return;
-
     final picked = _getMonday(pickedRange.start);
 
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()));
 
     try {
-      final controller = context.read<PlanningController>();
-      final pdfService = PdfGeneratorService();
-
-      final dataPaquete = await controller.generarPaqueteReporte(picked);
-      final config = dataPaquete['config'] as ConfigSetting?;
-      final items = dataPaquete['items'] as List<ReporteDataDTO>;
-
-      final bytes = await pdfService.generateWeeklyReport(
-        config: config,
-        items: items,
-        inicioSemana: picked,
-      );
-
+      final dto = await context
+          .read<PlanningController>()
+          .prepararDatosReporteSemanal(picked);
+      if (!mounted) return;
+      if (dto == null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Error recolectando datos"),
+            backgroundColor: Colors.red));
+        return;
+      }
+      final bytes = await WeeklyReportGenerator.generarReporte(dto);
       if (mounted) {
         Navigator.pop(context);
-
         final domingo = picked.add(const Duration(days: 6));
         final formatInicio =
             DateFormat('dd_MMM', 'es').format(picked).replaceAll('.', '');
         final formatFin =
             DateFormat('dd_MMM_yyyy', 'es').format(domingo).replaceAll('.', '');
-        final nombreArchivo = 'Rol_Semanal_${formatInicio}_al_$formatFin.pdf';
-
-        await _mostrarOpcionesSalidaPdf(context, bytes, nombreArchivo,
-            format: PdfPageFormat.a4.landscape);
+        await _mostrarOpcionesSalidaPdf(
+            context, bytes, 'Rol_Semanal_${formatInicio}_al_$formatFin.pdf',
+            format: PdfPageFormat.letter.landscape);
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-        );
+            SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
       }
     }
   }
@@ -329,52 +278,30 @@ class _OrdinariasTabState extends State<_OrdinariasTab> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<PlanningController>();
-
     return FutureBuilder<List<ReporteDataDTO>>(
       future: controller.listarHistorial(esPernocta: false),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting)
           return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty)
           return const Center(
               child: Text("No hay guardias ordinarias registradas."));
-        }
 
-        final itemsOriginales = snapshot.data!;
-
-        // ================= FILTRO =================
-        final itemsFiltrados = itemsOriginales.where((dto) {
+        final itemsFiltrados = snapshot.data!.where((dto) {
           if (widget.searchQuery.isEmpty) return true;
-
           final lugar = dto.actividad.lugar.toLowerCase();
           final detalle = dto.actividad.nombreActividad.toLowerCase();
           final jefe = dto.jefeServicio != null
               ? "${dto.jefeServicio!.nombres} ${dto.jefeServicio!.apellidos}"
                   .toLowerCase()
               : "";
-          final tipo = dto.tipoNombre.toLowerCase();
-
           return lugar.contains(widget.searchQuery) ||
               detalle.contains(widget.searchQuery) ||
-              jefe.contains(widget.searchQuery) ||
-              tipo.contains(widget.searchQuery);
+              jefe.contains(widget.searchQuery);
         }).toList();
 
-        if (itemsFiltrados.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.search_off, size: 50, color: Colors.grey.shade400),
-                const SizedBox(height: 10),
-                Text("Ninguna guardia coincide con '${widget.searchQuery}'",
-                    style: TextStyle(color: Colors.grey.shade600)),
-              ],
-            ),
-          );
-        }
-        // ==========================================
+        if (itemsFiltrados.isEmpty)
+          return const Center(child: Text("Ninguna guardia coincide."));
 
         final agrupado = groupBy(itemsFiltrados, (item) {
           final lunes = _getMonday(item.actividad.fecha);
@@ -392,43 +319,32 @@ class _OrdinariasTabState extends State<_OrdinariasTab> {
             final domingo = lunes.add(const Duration(days: 6));
             final actividadesDeSemana = agrupado[lunes]!;
 
-            final tituloSemana =
-                "Semana del ${DateFormat('d MMM').format(lunes)} al ${DateFormat('d MMM yyyy').format(domingo)}";
-
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               elevation: 3,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               child: ExpansionTile(
-                initiallyExpanded: widget.searchQuery.isNotEmpty ||
-                    index == 0, // Auto-expande si hay búsqueda
-                shape: Border.all(color: Colors.transparent),
+                initiallyExpanded: widget.searchQuery.isNotEmpty || index == 0,
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.date_range, color: Colors.blue),
-                ),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.date_range, color: Colors.blue)),
                 title: Text(
-                  tituloSemana,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                    "Semana del ${DateFormat('d MMM').format(lunes)} al ${DateFormat('d MMM yyyy').format(domingo)}",
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text("${actividadesDeSemana.length} actividades"),
                 trailing: IconButton(
-                  icon: const Icon(Icons.print, color: Colors.grey),
-                  tooltip: "Exportar Rol Semanal",
-                  onPressed: () => _imprimirSemana(context, lunes),
-                ),
-                children: actividadesDeSemana.map((dto) {
-                  return _ActividadTile(
-                    dto: dto,
-                    color: Colors.blue.shade50,
-                    iconColor: Colors.blue,
-                  );
-                }).toList(),
+                    icon: const Icon(Icons.print, color: Colors.grey),
+                    onPressed: () => _imprimirSemana(context, lunes)),
+                children: actividadesDeSemana
+                    .map((dto) => _ActividadTile(
+                        dto: dto,
+                        color: Colors.blue.shade50,
+                        iconColor: Colors.blue))
+                    .toList(),
               ),
             );
           },
@@ -439,7 +355,7 @@ class _OrdinariasTabState extends State<_OrdinariasTab> {
 }
 
 // ============================================================================
-// TAB 2: PERNOCTAS (Agrupado por MES y Filtrable)
+// TAB 2: PERNOCTAS
 // ============================================================================
 
 class _PernoctasTab extends StatefulWidget {
@@ -459,58 +375,46 @@ class _PernoctasTabState extends State<_PernoctasTab> {
       lastDate: DateTime(2030),
       helpText: "CONFIRMAR MES",
       locale: const Locale('es', 'ES'),
-      builder: (context, child) {
-        return Theme(
+      builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2E7D32),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
+              colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF2E7D32), onPrimary: Colors.white)),
+          child: child!),
     );
 
     if (picked == null || !mounted) return;
-
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()));
 
     try {
-      final controller = context.read<PlanningController>();
-      final pdfService = PdfGeneratorService();
-
-      final dataPaquete = await controller.generarReporteMensualPernoctas(
-          picked.year, picked.month);
-      final config = dataPaquete['config'] as ConfigSetting?;
-      final items = dataPaquete['items'] as List<ReporteDataDTO>;
-
-      final bytes = await pdfService.generateMonthlyReport(
-        config: config,
-        items: items,
-        month: picked.month,
-        year: picked.year,
-      );
-
+      final dto = await context
+          .read<PlanningController>()
+          .prepararDatosReporteMensualPernocta(picked.year, picked.month);
+      if (!mounted) return;
+      if (dto == null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Error recolectando datos"),
+            backgroundColor: Colors.red));
+        return;
+      }
+      final mesTexto =
+          DateFormat('MMMM yyyy', 'es').format(picked).toUpperCase();
+      final bytes =
+          await WeeklyReportGenerator.generarReportePernocta(dto, mesTexto);
       if (mounted) {
         Navigator.pop(context);
-
-        final nombreArchivo =
-            'Rol_Pernoctas_${picked.month}_${picked.year}.pdf';
-        await _mostrarOpcionesSalidaPdf(context, bytes, nombreArchivo,
-            format: PdfPageFormat.a4.landscape);
+        await _mostrarOpcionesSalidaPdf(
+            context, bytes, 'Rol_Pernoctas_${picked.month}_${picked.year}.pdf',
+            format: PdfPageFormat.letter.landscape);
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-        );
+            SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
       }
     }
   }
@@ -522,51 +426,31 @@ class _PernoctasTabState extends State<_PernoctasTab> {
     return FutureBuilder<List<ReporteDataDTO>>(
       future: controller.listarHistorial(esPernocta: true),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting)
           return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty)
           return const Center(child: Text("No hay pernoctas registradas."));
-        }
 
-        final itemsOriginales = snapshot.data!;
-
-        // ================= FILTRO =================
-        final itemsFiltrados = itemsOriginales.where((dto) {
+        final itemsFiltrados = snapshot.data!.where((dto) {
           if (widget.searchQuery.isEmpty) return true;
-
           final lugar = dto.actividad.lugar.toLowerCase();
           final detalle = dto.actividad.nombreActividad.toLowerCase();
           final jefe = dto.jefeServicio != null
               ? "${dto.jefeServicio!.nombres} ${dto.jefeServicio!.apellidos}"
                   .toLowerCase()
               : "";
-
           return lugar.contains(widget.searchQuery) ||
               detalle.contains(widget.searchQuery) ||
               jefe.contains(widget.searchQuery);
         }).toList();
 
-        if (itemsFiltrados.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.search_off, size: 50, color: Colors.grey.shade400),
-                const SizedBox(height: 10),
-                Text("Ninguna pernocta coincide con '${widget.searchQuery}'",
-                    style: TextStyle(color: Colors.grey.shade600)),
-              ],
-            ),
-          );
-        }
-        // ==========================================
+        if (itemsFiltrados.isEmpty)
+          return const Center(child: Text("Ninguna pernocta coincide."));
 
-        final agrupado = groupBy(itemsFiltrados, (item) {
-          return DateTime(
-              item.actividad.fecha.year, item.actividad.fecha.month, 1);
-        });
-
+        final agrupado = groupBy(
+            itemsFiltrados,
+            (item) => DateTime(
+                item.actividad.fecha.year, item.actividad.fecha.month, 1));
         final mesesOrdenados = agrupado.keys.toList()
           ..sort((a, b) => b.compareTo(a));
 
@@ -576,8 +460,6 @@ class _PernoctasTabState extends State<_PernoctasTab> {
           itemBuilder: (context, index) {
             final mesDate = mesesOrdenados[index];
             final actividadesDelMes = agrupado[mesDate]!;
-            final tituloMes =
-                DateFormat('MMMM yyyy').format(mesDate).toUpperCase();
 
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
@@ -586,32 +468,26 @@ class _PernoctasTabState extends State<_PernoctasTab> {
                   borderRadius: BorderRadius.circular(12)),
               child: ExpansionTile(
                 initiallyExpanded: widget.searchQuery.isNotEmpty || index == 0,
-                shape: Border.all(color: Colors.transparent),
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.night_shelter, color: Colors.purple),
-                ),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(8)),
+                    child:
+                        const Icon(Icons.night_shelter, color: Colors.purple)),
                 title: Text(
-                  tituloMes,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                    DateFormat('MMMM yyyy').format(mesDate).toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text("${actividadesDelMes.length} guardias"),
                 trailing: IconButton(
-                  icon: const Icon(Icons.print, color: Colors.grey),
-                  tooltip: "Exportar Rol Mensual",
-                  onPressed: () => _imprimirMes(context, mesDate),
-                ),
-                children: actividadesDelMes.map((dto) {
-                  return _ActividadTile(
-                    dto: dto,
-                    color: Colors.purple.shade50,
-                    iconColor: Colors.purple,
-                  );
-                }).toList(),
+                    icon: const Icon(Icons.print, color: Colors.grey),
+                    onPressed: () => _imprimirMes(context, mesDate)),
+                children: actividadesDelMes
+                    .map((dto) => _ActividadTile(
+                        dto: dto,
+                        color: Colors.purple.shade50,
+                        iconColor: Colors.purple))
+                    .toList(),
               ),
             );
           },
@@ -622,7 +498,7 @@ class _PernoctasTabState extends State<_PernoctasTab> {
 }
 
 // ============================================================================
-// TAB 3: INCIDENCIAS / ACTAS (Listado Cronológico Filtrable)
+// TAB 3: INCIDENCIAS / ACTAS
 // ============================================================================
 
 class _IncidenciasTab extends StatelessWidget {
@@ -631,30 +507,24 @@ class _IncidenciasTab extends StatelessWidget {
 
   Future<void> _verActa(BuildContext context, int incidenciaId) async {
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()));
     try {
       final controller = context.read<PlanningController>();
       final data = await controller.obtenerDatosActaCompleta(incidenciaId);
       final bytes = await ActaGenerator().generate(data);
-
       if (context.mounted) {
         Navigator.pop(context);
-
-        final nombreArchivo = 'Acta_Inasistencia_$incidenciaId.pdf';
-        await _mostrarOpcionesSalidaPdf(context, bytes, nombreArchivo);
+        await _mostrarOpcionesSalidaPdf(
+            context, bytes, 'Acta_Inasistencia_$incidenciaId.pdf');
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("Error abriendo acta: $e"),
-              backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Error abriendo acta: $e"),
+            backgroundColor: Colors.red));
       }
     }
   }
@@ -666,9 +536,8 @@ class _IncidenciasTab extends StatelessWidget {
     return FutureBuilder<List<IncidenciaDataDTO>>(
       future: controller.listarIncidencias(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting)
           return const Center(child: CircularProgressIndicator());
-        }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Column(
@@ -676,54 +545,29 @@ class _IncidenciasTab extends StatelessWidget {
               children: [
                 Icon(Icons.gavel, size: 60, color: Colors.grey.shade300),
                 const SizedBox(height: 10),
-                Text(
-                  "No hay actas registradas",
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
+                Text("No hay actas registradas",
+                    style: TextStyle(color: Colors.grey.shade500))
               ],
             ),
           );
         }
 
-        final actasOriginales = snapshot.data!;
-
-        // ================= FILTRO =================
-        final actasFiltradas = actasOriginales.where((item) {
+        final actasFiltradas = snapshot.data!.where((item) {
           if (searchQuery.isEmpty) return true;
-
-          final nombreInasistente =
-              "${item.inasistente.nombres} ${item.inasistente.apellidos}"
-                  .toLowerCase();
-          final numActa = item.incidencia.id.toString();
-
-          return nombreInasistente.contains(searchQuery) ||
-              numActa.contains(searchQuery);
+          return "${item.inasistente.nombres} ${item.inasistente.apellidos}"
+                  .toLowerCase()
+                  .contains(searchQuery) ||
+              item.incidencia.id.toString().contains(searchQuery);
         }).toList();
 
-        if (actasFiltradas.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.search_off, size: 50, color: Colors.grey.shade400),
-                const SizedBox(height: 10),
-                Text("Ningún acta coincide con '$searchQuery'",
-                    style: TextStyle(color: Colors.grey.shade600)),
-              ],
-            ),
-          );
-        }
-        // ==========================================
+        if (actasFiltradas.isEmpty)
+          return const Center(child: Text("Ningún acta coincide."));
 
         return ListView.builder(
           padding: const EdgeInsets.all(12),
           itemCount: actasFiltradas.length,
           itemBuilder: (context, index) {
             final item = actasFiltradas[index];
-            final fechaActa = item.incidencia.fechaHoraRegistro;
-            final nombreInasistente =
-                "${item.inasistente.nombres} ${item.inasistente.apellidos}";
-
             return Card(
               elevation: 2,
               margin: const EdgeInsets.only(bottom: 12),
@@ -732,35 +576,28 @@ class _IncidenciasTab extends StatelessWidget {
               child: ListTile(
                 contentPadding: const EdgeInsets.all(12),
                 leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.description, color: Colors.red.shade800),
-                ),
-                title: Text(
-                  "Acta de Inasistencia #${item.incidencia.id}",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: Colors.red.shade50, shape: BoxShape.circle),
+                    child: Icon(Icons.description, color: Colors.red.shade800)),
+                title: Text("Acta de Inasistencia #${item.incidencia.id}",
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-                    Text("Funcionario: $nombreInasistente"),
                     Text(
-                      "Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(fechaActa)}",
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    ),
+                        "Funcionario: ${item.inasistente.nombres} ${item.inasistente.apellidos}"),
+                    Text(
+                        "Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(item.incidencia.fechaHoraRegistro)}",
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600)),
                   ],
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.print),
-                  color: Colors.grey.shade700,
-                  tooltip: "Exportar Acta",
-                  onPressed: () => _verActa(context, item.incidencia.id),
-                ),
+                    icon: const Icon(Icons.print),
+                    color: Colors.grey.shade700,
+                    onPressed: () => _verActa(context, item.incidencia.id)),
               ),
             );
           },
@@ -771,7 +608,7 @@ class _IncidenciasTab extends StatelessWidget {
 }
 
 // ============================================================================
-// WIDGET COMPARTIDO: Tile de Actividad (Reutilizable)
+// WIDGET COMPARTIDO: Tile de Actividad (AHORA CON MENÚ DE FALTAS MASIVAS)
 // ============================================================================
 
 class _ActividadTile extends StatelessWidget {
@@ -779,19 +616,15 @@ class _ActividadTile extends StatelessWidget {
   final Color color;
   final Color iconColor;
 
-  const _ActividadTile({
-    required this.dto,
-    required this.color,
-    required this.iconColor,
-  });
+  const _ActividadTile(
+      {required this.dto, required this.color, required this.iconColor});
 
   void _navegarAEditar(BuildContext context) {
     Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CreateActivityScreen(actividadId: dto.actividad.id),
-      ),
-    );
+        context,
+        MaterialPageRoute(
+            builder: (_) =>
+                CreateActivityScreen(actividadId: dto.actividad.id)));
   }
 
   void _confirmarEliminar(BuildContext context) {
@@ -803,23 +636,133 @@ class _ActividadTile extends StatelessWidget {
             "Esta acción borrará la planificación y liberará al personal asignado.\n\n⚠️ No se puede deshacer."),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancelar"),
-          ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancelar")),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final controller = ctx.read<PlanningController>();
-                await controller.eliminarActividad(dto.actividad.id);
-              } catch (e) {
-                // Manejo básico de error
-              }
+                await ctx
+                    .read<PlanningController>()
+                    .eliminarActividad(dto.actividad.id);
+              } catch (e) {}
             },
             child: const Text("Eliminar"),
           ),
         ],
+      ),
+    );
+  }
+
+  // --- LÓGICA DE SELECCIÓN MÚLTIPLE DE INASISTENTES ---
+  void _mostrarDialogoFaltas(BuildContext context) {
+    if (dto.funcionarios.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("No hay personal asignado a esta guardia."),
+          backgroundColor: Colors.orange));
+      return;
+    }
+
+    List<int> seleccionadosIds = [];
+    final TextEditingController descController = TextEditingController(
+        text: "Inasistencia injustificada al rol de guardia asignado.");
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                const SizedBox(width: 8),
+                const Text("Reportar Inasistencias"),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      "Marque los funcionarios que NO se presentaron a la guardia:",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  // Renderiza Checkboxes por cada funcionario asignado
+                  ...dto.funcionarios
+                      .map((f) => CheckboxListTile(
+                            title: Text("${f.nombres} ${f.apellidos}"),
+                            subtitle:
+                                Text("CI: ${f.cedula} | ${f.rango ?? 'S/R'}"),
+                            value: seleccionadosIds.contains(f.id),
+                            activeColor: Colors.orange.shade800,
+                            dense: true,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true) {
+                                  seleccionadosIds.add(f.id);
+                                } else {
+                                  seleccionadosIds.remove(f.id);
+                                }
+                              });
+                            },
+                          ))
+                      .toList(),
+                  const Divider(height: 30),
+                  TextField(
+                    controller: descController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: "Motivo / Descripción que saldrá en el acta",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Cancelar")),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Colors.orange.shade800),
+                onPressed: () async {
+                  if (seleccionadosIds.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content:
+                            Text("Debe seleccionar al menos a una persona."),
+                        backgroundColor: Colors.red));
+                    return;
+                  }
+                  Navigator.pop(ctx); // Cerrar dialogo
+
+                  // Llamar al Controlador
+                  try {
+                    await context
+                        .read<PlanningController>()
+                        .registrarInasistenciaMasiva(dto.actividad.id,
+                            seleccionadosIds, descController.text);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                              "✅ Actas creadas. Revise la pestaña 'Actas' para imprimir."),
+                          backgroundColor: Colors.green));
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text("Error al registrar faltas: $e"),
+                          backgroundColor: Colors.red));
+                    }
+                  }
+                },
+                child: const Text("Generar Actas"),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -845,19 +788,15 @@ class _ActividadTile extends StatelessWidget {
           ]
         ],
       ),
-      title: Text(
-        "${dto.tipoNombre} (${dateStr.toUpperCase()})",
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-      ),
+      title: Text("${dto.tipoNombre} (${dateStr.toUpperCase()})",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (dto.actividad.nombreActividad.isNotEmpty)
-            Text(
-              "Detalle: ${dto.actividad.nombreActividad}",
-              style: const TextStyle(
-                  color: Colors.black87, fontStyle: FontStyle.italic),
-            ),
+            Text("Detalle: ${dto.actividad.nombreActividad}",
+                style: const TextStyle(
+                    color: Colors.black87, fontStyle: FontStyle.italic)),
           Text("Lugar: ${dto.actividad.lugar}",
               maxLines: 1, overflow: TextOverflow.ellipsis),
           Text("Líder: $jefeName",
@@ -869,12 +808,20 @@ class _ActividadTile extends StatelessWidget {
         onSelected: (value) {
           if (value == 'edit') _navegarAEditar(context);
           if (value == 'delete') _confirmarEliminar(context);
+          if (value == 'falta')
+            _mostrarDialogoFaltas(context); // Llama al nuevo Dialog
         },
         itemBuilder: (ctx) => [
           const PopupMenuItem(value: 'edit', child: Text('Editar')),
           const PopupMenuItem(
+              value: 'falta',
+              child: Text('Reportar Inasistencia',
+                  style: TextStyle(
+                      color: Colors.orange, fontWeight: FontWeight.bold))),
+          const PopupMenuItem(
               value: 'delete',
-              child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+              child: Text('Eliminar Guardia',
+                  style: TextStyle(color: Colors.red))),
         ],
       ),
       onTap: () => _navegarAEditar(context),

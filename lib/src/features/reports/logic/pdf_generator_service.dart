@@ -1,3 +1,4 @@
+import 'dart:io'; // Agregado para File
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -7,6 +8,7 @@ import 'package:printing/printing.dart';
 
 import '../../planning/logic/planning_controller.dart';
 import '../../../data/local/app_database.dart';
+import '../../../core/utils/file_helper.dart'; // INYECTAMOS EL HELPER
 
 class PdfGeneratorService {
   // ============================================================================
@@ -19,7 +21,6 @@ class PdfGeneratorService {
       final Uint8List logoBytes = bytes.buffer.asUint8List();
       return pw.MemoryImage(logoBytes);
     } catch (e) {
-      // Si la imagen no existe o hay error, retorna nulo para no romper el PDF
       print("Advertencia: No se pudo cargar el logo_inparques.png - $e");
       return null;
     }
@@ -34,8 +35,6 @@ class PdfGeneratorService {
 
     final font = await PdfGoogleFonts.nunitoExtraLight();
     final fontBold = await PdfGoogleFonts.nunitoBold();
-
-    // Cargamos el logo antes de construir las páginas
     final logoImage = await _loadLogo();
 
     final finSemana = inicioSemana.add(const Duration(days: 6));
@@ -75,8 +74,6 @@ class PdfGeneratorService {
     final doc = pw.Document();
     final font = await PdfGoogleFonts.nunitoExtraLight();
     final fontBold = await PdfGoogleFonts.nunitoBold();
-
-    // Cargamos el logo antes de construir las páginas
     final logoImage = await _loadLogo();
 
     final mesStr = DateFormat('MMMM yyyy', 'es').format(DateTime(year, month));
@@ -115,10 +112,8 @@ class PdfGeneratorService {
     required pw.Font fontBold,
     required pw.ImageProvider? logo,
   }) {
-    // PREPARACIÓN DE DATOS
     String nombreCompletoJefe = "INPARQUES";
     if (config != null) {
-      // MODIFICACIÓN: Inclusión de las siglas GP/ antes del rango y el nombre
       nombreCompletoJefe =
           "GP/ ${config.rangoJefe} ${config.nombreJefe} ${config.apellidoJefe ?? ''}"
               .toUpperCase();
@@ -127,17 +122,14 @@ class PdfGeneratorService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        // 1. Institución / Parque (CON LOGO)
         pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              // Si el logo existe, lo dibujamos a la izquierda
               if (logo != null) ...[
                 pw.Image(logo, width: 60, height: 60),
                 pw.SizedBox(width: 15),
               ],
-              // Texto centrado
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -156,14 +148,11 @@ class PdfGeneratorService {
                   ],
                 ),
               ),
-              // Espacio vacío a la derecha para equilibrar y mantener el texto en el centro exacto
               if (logo != null) ...[
                 pw.SizedBox(width: 75),
               ]
             ]),
         pw.SizedBox(height: 15),
-
-        // 2. Título del Reporte
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 5),
           decoration: pw.BoxDecoration(
@@ -180,8 +169,6 @@ class PdfGeneratorService {
           ),
         ),
         pw.SizedBox(height: 10),
-
-        // 3. Datos del Jefe de Sector
         if (config != null)
           pw.Container(
             width: double.infinity,
@@ -344,5 +331,26 @@ class PdfGeneratorService {
         style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey),
       ),
     );
+  }
+
+  // ============================================================================
+  // NUEVO: Función para guardar el PDF en la carpeta pública y compartirlo
+  // ============================================================================
+  Future<void> guardarYCompartirPdf(
+      Uint8List pdfBytes, String nombreArchivo) async {
+    try {
+      // 1. Buscamos nuestra carpeta en Documentos
+      final rutaCarpeta = await FileHelper.obtenerCarpetaPublicaInparques();
+      final rutaCompleta = '$rutaCarpeta/$nombreArchivo';
+
+      // 2. Guardamos el archivo físicamente
+      final archivo = File(rutaCompleta);
+      await archivo.writeAsBytes(pdfBytes);
+
+      // 3. Lanzamos el menú de compartir
+      await FileHelper.compartirArchivo(rutaCompleta, nombreArchivo);
+    } catch (e) {
+      print("Error al guardar y compartir el PDF: $e");
+    }
   }
 }

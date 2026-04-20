@@ -1,309 +1,271 @@
 import 'dart:typed_data';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart'; // Para debugPrint
+import 'package:flutter/services.dart' show rootBundle; // Para cargar el logo
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import '../../../data/local/app_database.dart';
-import '../../planning/logic/planning_controller.dart';
+
+// ============================================================================
+// DTOs (Data Transfer Objects)
+// ============================================================================
+
+class FuncionarioReporteDTO {
+  final String nombreCompleto;
+  final String cedula;
+  final String rango;
+
+  FuncionarioReporteDTO({
+    required this.nombreCompleto,
+    required this.cedula,
+    required this.rango,
+  });
+}
+
+class ActividadReporteDTO {
+  final DateTime fecha;
+  final String nombreActividad;
+  final String lugar;
+  final String jefeServicioNombre;
+  final String jefeServicioCedula;
+  final List<FuncionarioReporteDTO> funcionarios;
+
+  ActividadReporteDTO({
+    required this.fecha,
+    required this.nombreActividad,
+    required this.lugar,
+    required this.jefeServicioNombre,
+    required this.jefeServicioCedula,
+    required this.funcionarios,
+  });
+}
+
+class PlanificacionReporteDTO {
+  final DateTime fechaInicio;
+  final DateTime fechaFin;
+  final String parqueNombre;
+  final String sectorNombre;
+  final String ciudad;
+  final String municipio;
+  final String estado;
+  final String jefeNombre;
+  final String jefeRango;
+  final List<ActividadReporteDTO> actividades;
+
+  PlanificacionReporteDTO({
+    required this.fechaInicio,
+    required this.fechaFin,
+    required this.parqueNombre,
+    required this.sectorNombre,
+    required this.ciudad,
+    required this.municipio,
+    required this.estado,
+    required this.jefeNombre,
+    required this.jefeRango,
+    required this.actividades,
+  });
+}
+
+// ============================================================================
+// GENERADORES PDF (ORDINARIA Y PERNOCTA)
+// ============================================================================
 
 class WeeklyReportGenerator {
-  static const Map<int, String> _diasSemana = {
-    1: 'LUNES',
-    2: 'MARTES',
-    3: 'MIERCOLES',
-    4: 'JUEVES',
-    5: 'VIERNES',
-    6: 'SABADO',
-    7: 'DOMINGO'
-  };
-
-  static const Map<int, String> _meses = {
-    1: '01',
-    2: '02',
-    3: '03',
-    4: '04',
-    5: '05',
-    6: '06',
-    7: '07',
-    8: '08',
-    9: '09',
-    10: '10',
-    11: '11',
-    12: '12'
-  };
-
-  Future<Uint8List> generate(
-    Map<String, dynamic> dataPaquete,
-    DateTime inicioSemana,
-  ) async {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    final config = dataPaquete['config'] as ConfigSetting?;
-    final items = dataPaquete['items'] as List<ReporteDataDTO>;
-
-    final fontRegular = pw.Font.courier();
-    final fontBold = pw.Font.courierBold();
-    final fontItalic = pw.Font.courierOblique();
-    final fontBoldItalic = pw.Font.courierBoldOblique();
-
-    final theme = pw.ThemeData.withFont(
-      base: fontRegular,
-      bold: fontBold,
-      italic: fontItalic,
-      boldItalic: fontBoldItalic,
-      icons: fontRegular,
+  // 1. REPORTE SEMANAL (ORDINARIO)
+  static Future<Uint8List> generarReporte(PlanificacionReporteDTO data) async {
+    return _construirEstructuraPdf(
+      data: data,
+      tituloReporte: "PLANIFICACIÓN DEL PERSONAL",
+      subtitulo:
+          "Semana: ${DateFormat('dd/MM/yyyy').format(data.fechaInicio)} al ${DateFormat('dd/MM/yyyy').format(data.fechaFin)}",
     );
+  }
 
-    final pdf = pw.Document(theme: theme);
+  // 2. REPORTE MENSUAL (PERNOCTA)
+  static Future<Uint8List> generarReportePernocta(
+      PlanificacionReporteDTO data, String mesTexto) async {
+    return _construirEstructuraPdf(
+      data: data,
+      tituloReporte: "PLANIFICACIÓN DE GUARDIAS DE PERNOCTA",
+      subtitulo: "Mes: $mesTexto",
+    );
+  }
 
-    const pageFormat = PdfPageFormat(
-        21.0 * PdfPageFormat.cm, 29.7 * PdfPageFormat.cm,
-        marginAll: 1.5 * PdfPageFormat.cm);
+  // MÉTODO PRIVADO REUTILIZABLE PARA NO REPETIR CÓDIGO
+  static Future<Uint8List> _construirEstructuraPdf({
+    required PlanificacionReporteDTO data,
+    required String tituloReporte,
+    required String subtitulo,
+  }) async {
+    final pdf = pw.Document();
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final fontNormal = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+
+    // 1. CARGAMOS EL LOGO DE INPARQUES DESDE LOS ASSETS
+    pw.MemoryImage? logoImage;
+    try {
+      final ByteData bytes =
+          await rootBundle.load('assets/images/logo_inparques.png');
+      logoImage = pw.MemoryImage(bytes.buffer.asUint8List());
+    } catch (e) {
+      debugPrint(
+          "Advertencia: No se pudo cargar el logo de inparques para el PDF: $e");
+    }
+
+    final headers = [
+      'Fecha',
+      'Actividad',
+      'Lugar',
+      'Jefe de Servicio\n(Cédula)',
+      'Funcionarios Asignados\n(Cédulas)'
+    ];
+
+    final tableData = data.actividades.map((act) {
+      final fechaStr = dateFormat.format(act.fecha);
+
+      final jefeStr = act.jefeServicioNombre.isNotEmpty &&
+              act.jefeServicioNombre != "No asignado"
+          ? "${act.jefeServicioNombre}\nC.I: ${act.jefeServicioCedula}"
+          : "No asignado";
+
+      final funcionariosStr = act.funcionarios.isEmpty
+          ? "Sin personal asignado"
+          : act.funcionarios
+              .map(
+                  (f) => "- ${f.rango} ${f.nombreCompleto}\n  C.I: ${f.cedula}")
+              .join('\n');
+
+      return [
+        fechaStr,
+        act.nombreActividad,
+        act.lugar,
+        jefeStr,
+        funcionariosStr
+      ];
+    }).toList();
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: pageFormat,
+        pageFormat: PdfPageFormat.letter.landscape,
+        margin: const pw.EdgeInsets.all(40),
+        header: (pw.Context context) {
+          return pw.Column(
+            children: [
+              // ENCABEZADO CON LOGO Y TEXTO CENTRADO
+              pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Lado Izquierdo: Logo
+                    pw.Container(
+                      width: 70, // Ancho fijo para balancear
+                      alignment: pw.Alignment.topLeft,
+                      child: logoImage != null
+                          ? pw.Image(logoImage, width: 65, height: 65)
+                          : pw.SizedBox(),
+                    ),
+
+                    // Centro: Textos expandidos para forzar el centro perfecto
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.Text("REPÚBLICA BOLIVARIANA DE VENEZUELA",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontBold, fontSize: 10)),
+                          pw.Text(
+                              "MINISTERIO DEL PODER POPULAR PARA EL ECOSOCIALISMO",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontBold, fontSize: 10)),
+                          pw.Text("INSTITUTO NACIONAL DE PARQUES",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontBold, fontSize: 11)),
+                          pw.SizedBox(height: 10),
+                          pw.Text("PARQUE: ${data.parqueNombre.toUpperCase()}",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontNormal, fontSize: 10)),
+                          pw.Text("SECTOR: ${data.sectorNombre.toUpperCase()}",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontNormal, fontSize: 10)),
+                          pw.Text(
+                              "UBICACIÓN: ${data.ciudad}, MUN. ${data.municipio.toUpperCase()}, EDO. ${data.estado.toUpperCase()}",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontNormal, fontSize: 9)),
+                          pw.SizedBox(height: 5),
+                          pw.Text(
+                              "RESPONSABLE DEL SECTOR: ${data.jefeRango} ${data.jefeNombre.toUpperCase()}",
+                              textAlign: pw.TextAlign.center,
+                              style:
+                                  pw.TextStyle(font: fontBold, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+
+                    // Lado Derecho: Contenedor vacío del mismo tamaño del logo
+                    // (Esto garantiza que el texto del centro no se desplace)
+                    pw.Container(width: 70),
+                  ]),
+
+              // TÍTULOS DEL DOCUMENTO
+              pw.SizedBox(height: 20),
+              pw.Text(tituloReporte,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(font: fontBold, fontSize: 14)),
+              pw.SizedBox(height: 5),
+              pw.Text(subtitulo,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(font: fontNormal, fontSize: 12)),
+              pw.SizedBox(height: 20),
+            ],
+          );
+        },
         build: (pw.Context context) {
           return [
-            pw.DefaultTextStyle(
-              style: pw.TextStyle(font: fontRegular, fontSize: 10),
-              child: pw.Column(
-                children: [
-                  _buildHeader(config, inicioSemana, fontBold, fontRegular),
-                  pw.SizedBox(height: 10),
-                  if (items.isEmpty)
-                    pw.Center(
-                        child: pw.Text("SIN ACTIVIDADES PROGRAMADAS",
-                            style: pw.TextStyle(font: fontBold, fontSize: 18)))
-                  else
-                    pw.Column(
-                      children: items
-                          .map((item) => pw.Padding(
-                                padding: const pw.EdgeInsets.only(bottom: 12),
-                                child: _buildActivityCard(
-                                    item, fontRegular, fontBold, fontItalic),
-                              ))
-                          .toList(),
-                    ),
-                  pw.SizedBox(height: 15),
-                  _buildFooter(config, fontRegular),
-                ],
-              ),
+            pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: tableData,
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.5),
+              headerStyle: pw.TextStyle(
+                  font: fontBold, fontSize: 10, color: PdfColors.white),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColor.fromInt(0xFF2E7D32)),
+              cellStyle: pw.TextStyle(font: fontNormal, fontSize: 9),
+              cellPadding: const pw.EdgeInsets.all(6),
+              cellAlignments: {
+                0: pw.Alignment.center,
+                1: pw.Alignment.centerLeft,
+                2: pw.Alignment.centerLeft,
+                3: pw.Alignment.center,
+                4: pw.Alignment.centerLeft,
+              },
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1),
+                1: const pw.FlexColumnWidth(2),
+                2: const pw.FlexColumnWidth(2),
+                3: const pw.FlexColumnWidth(2),
+                4: const pw.FlexColumnWidth(3),
+              },
             ),
           ];
+        },
+        footer: (pw.Context context) {
+          return pw.Container(
+            alignment: pw.Alignment.centerRight,
+            margin: const pw.EdgeInsets.only(top: 10),
+            child: pw.Text(
+                'Página ${context.pageNumber} de ${context.pagesCount}',
+                style: pw.TextStyle(
+                    font: fontNormal, fontSize: 8, color: PdfColors.grey)),
+          );
         },
       ),
     );
 
     return pdf.save();
-  }
-
-  String _clean(String input) {
-    var text = input.toUpperCase();
-    text = text
-        .replaceAll('Á', 'A')
-        .replaceAll('É', 'E')
-        .replaceAll('Í', 'I')
-        .replaceAll('Ó', 'O')
-        .replaceAll('Ú', 'U')
-        .replaceAll('Ñ', 'N');
-    return text;
-  }
-
-  String _formatDate(DateTime date) {
-    final diaNombre = _diasSemana[date.weekday] ?? 'DIA';
-    final diaNum = date.day.toString().padLeft(2, '0');
-    return "$diaNombre $diaNum";
-  }
-
-  pw.Widget _buildHeader(ConfigSetting? config, DateTime inicio,
-      pw.Font fontBold, pw.Font fontRegular) {
-    final fin = inicio.add(const Duration(days: 6));
-    final diaInicio = inicio.day.toString().padLeft(2, '0');
-    final diaFin = fin.day.toString().padLeft(2, '0');
-    final mes = _meses[fin.month] ?? '01';
-    final anio = fin.year.toString();
-
-    final textoPeriodo = "PERIODO $diaInicio-$diaFin-$mes-$anio";
-    final rangoJefe = _clean(config?.rangoJefe ?? "");
-    final nombreJefe = _clean(config?.nombreJefe ?? "ADMINISTRADOR");
-    final apellidoJefe = _clean(config?.apellidoJefe ?? "");
-    final datosJefe = "$rangoJefe $nombreJefe $apellidoJefe".trim();
-    final nombreSector = _clean(config?.sectorNombre ?? "INPARQUES");
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(datosJefe, style: pw.TextStyle(font: fontBold, fontSize: 14)),
-        pw.Text(nombreSector,
-            style: pw.TextStyle(font: fontRegular, fontSize: 12)),
-        pw.Divider(thickness: 1, height: 10),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text("ROL DE GUARDIAS",
-                style: pw.TextStyle(font: fontBold, fontSize: 16)),
-            pw.Container(
-              padding:
-                  const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: pw.BoxDecoration(
-                  border: pw.Border.all(),
-                  borderRadius: pw.BorderRadius.circular(4)),
-              child: pw.Text(textoPeriodo, style: pw.TextStyle(font: fontBold)),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  pw.Widget _buildActivityCard(ReporteDataDTO item, pw.Font fontReg,
-      pw.Font fontBold, pw.Font fontItalic) {
-    final fecha = _formatDate(item.actividad.fecha);
-    final esPernocta = item.actividad.esPernocta;
-
-    return pw.Container(
-      width: double.infinity,
-      padding: const pw.EdgeInsets.all(8),
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey600),
-        borderRadius: pw.BorderRadius.circular(4),
-        color: esPernocta ? PdfColors.grey100 : PdfColors.white,
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Row(children: [
-            pw.Text("FECHA: ",
-                style: pw.TextStyle(font: fontBold, fontSize: 10)),
-            pw.Text(fecha, style: pw.TextStyle(font: fontReg, fontSize: 10)),
-            if (esPernocta) ...[
-              pw.SizedBox(width: 10),
-              pw.Container(
-                padding:
-                    const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                color: PdfColors.black,
-                child: pw.Text("PERNOCTA",
-                    style: pw.TextStyle(
-                        font: fontBold, color: PdfColors.white, fontSize: 8)),
-              )
-            ]
-          ]),
-          pw.SizedBox(height: 2),
-          pw.Row(children: [
-            pw.Text("ACTIVIDAD: ",
-                style: pw.TextStyle(font: fontBold, fontSize: 10)),
-            pw.Text(_clean(item.tipoNombre),
-                style: pw.TextStyle(font: fontReg, fontSize: 10)),
-          ]),
-          pw.SizedBox(height: 2),
-          if (item.actividad.nombreActividad.isNotEmpty)
-            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text("DETALLE: ",
-                  style: pw.TextStyle(font: fontBold, fontSize: 10)),
-              pw.Expanded(
-                  child: pw.Text(_clean(item.actividad.nombreActividad),
-                      style: pw.TextStyle(font: fontItalic, fontSize: 10))),
-            ]),
-          pw.SizedBox(height: 2),
-          pw.Row(children: [
-            pw.Text("LUGAR: ",
-                style: pw.TextStyle(font: fontBold, fontSize: 10)),
-            pw.Text(_clean(item.actividad.lugar),
-                style: pw.TextStyle(font: fontReg, fontSize: 10)),
-          ]),
-          pw.Divider(height: 8, thickness: 0.5, color: PdfColors.grey400),
-          if (item.jefeServicio != null)
-            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.SizedBox(
-                  width: 120,
-                  child: pw.Text("JEFE DE SERVICIO:",
-                      style: pw.TextStyle(font: fontBold, fontSize: 10))),
-              pw.Expanded(
-                  child: pw.Text(_formatFuncionario(item.jefeServicio!),
-                      style: pw.TextStyle(font: fontReg, fontSize: 10))),
-            ]),
-          if (item.funcionarios.any((f) => f.id != item.jefeServicio?.id)) ...[
-            pw.SizedBox(height: 4),
-            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.SizedBox(
-                  width: 120,
-                  child: pw.Text("PERSONAL ASIGNADO:",
-                      style: pw.TextStyle(font: fontBold, fontSize: 10))),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: item.funcionarios
-                      .where((f) => f.id != item.jefeServicio?.id)
-                      .map((f) => pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 2),
-                          child: pw.Text("- ${_formatFuncionario(f)}",
-                              style:
-                                  pw.TextStyle(font: fontReg, fontSize: 10))))
-                      .toList(),
-                ),
-              ),
-            ]),
-          ]
-        ],
-      ),
-    );
-  }
-
-  String _formatFuncionario(Funcionario f) {
-    final r = f.rango ?? "";
-    final n = f.nombres;
-    final a = f.apellidos;
-    // Eliminado el check de 'is not null' innecesario para cedula ya que es un String robusto
-    final cedulaTexto = " (C.I. ${f.cedula})";
-    return _clean("$r $n $a$cedulaTexto").trim();
-  }
-
-  pw.Widget _buildFooter(ConfigSetting? config, pw.Font font) {
-    final nombreJefeCompleto = _clean(
-        "${config?.nombreJefe ?? 'ADMINISTRADOR'} ${config?.apellidoJefe ?? ''}"
-            .trim());
-    final cargoJefe = _clean((config?.jefeCargo ?? "JEFE DE SECTOR"));
-
-    return pw.Column(
-      children: [
-        pw.Divider(thickness: 1),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("ELABORADO POR:",
-                      style: pw.TextStyle(font: font, fontSize: 8)),
-                  pw.SizedBox(height: 25),
-                  pw.Text(nombreJefeCompleto,
-                      style: pw.TextStyle(
-                          font: font,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10)),
-                  pw.Text(cargoJefe,
-                      style: pw.TextStyle(font: font, fontSize: 8)),
-                ],
-              ),
-            ),
-            pw.SizedBox(width: 40),
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("RECIBIDO POR:",
-                      style: pw.TextStyle(font: font, fontSize: 8)),
-                  pw.SizedBox(height: 25),
-                  pw.Container(height: 1, color: PdfColors.black),
-                  pw.Text("FECHA Y HORA",
-                      style: pw.TextStyle(font: font, fontSize: 8)),
-                ],
-              ),
-            ),
-          ],
-        )
-      ],
-    );
   }
 }

@@ -6,18 +6,32 @@ import 'package:path/path.dart' as p;
 
 part 'app_database.g.dart';
 
+// --- NUEVA TABLA MULTIUSUARIO ---
+class UsuariosSistema extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get usuario => text().unique()();
+  TextColumn get password => text()();
+  TextColumn get rol => text().withDefault(const Constant('Operador'))();
+
+  // CAMBIO V13: Pregunta de seguridad por cada operador
+  TextColumn get preguntaSeguridad => text().nullable()();
+  TextColumn get respuestaSeguridad => text().nullable()();
+}
+
 // --- TABLAS DE CONFIGURACIÓN Y MAESTROS ---
 
 class ConfigSettings extends Table {
   IntColumn get id => integer().autoIncrement()();
-  // CAMBIO V10: Campos agregados y renombrados para compatibilidad con Reportes
   TextColumn get nombreInstitucion =>
       text().withDefault(const Constant('INPARQUES'))();
+
+  // CAMBIO V14: Ubicación Geográfica Detallada
+  TextColumn get parqueNombre => text().nullable()();
   TextColumn get sectorNombre => text().nullable()();
+  TextColumn get ciudad => text().nullable()();
   TextColumn get municipio => text().nullable()();
   TextColumn get estado => text().nullable()();
 
-  // Renombrado de columnas (antes jefeNombre, etc.) para coincidir con lógica
   TextColumn get nombreJefe => text()();
   TextColumn get apellidoJefe => text().nullable()();
   TextColumn get rangoJefe => text()();
@@ -26,6 +40,9 @@ class ConfigSettings extends Table {
       text().withDefault(const Constant('Jefe de Sector'))();
   TextColumn get usuario => text()();
   TextColumn get password => text()();
+
+  TextColumn get preguntaSeguridad => text().nullable()();
+  TextColumn get respuestaSeguridad => text().nullable()();
 }
 
 class Rangos extends Table {
@@ -57,7 +74,6 @@ class Funcionarios extends Table {
   TextColumn get apellidos => text()();
   TextColumn get cedula => text().unique().withLength(min: 6, max: 12)();
 
-  // CAMBIO V9: Campos ahora opcionales (nullable)
   TextColumn get rango => text().nullable()();
   IntColumn get rangoId => integer().nullable().references(Rangos, #id)();
   DateTimeColumn get fechaNacimiento => dateTime().nullable()();
@@ -173,6 +189,7 @@ class Incidencias extends Table {
 
 @DriftDatabase(
   tables: [
+    UsuariosSistema,
     ConfigSettings,
     Rangos,
     TiposGuardia,
@@ -192,8 +209,9 @@ class Incidencias extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  // VERSIÓN 14: Campos de Ubicación Geográfica
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -240,17 +258,32 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(incidencias, incidencias.testigoDosId);
           await m.addColumn(incidencias, incidencias.observaciones);
         }
-
         if (from < 10) {
           await m.addColumn(configSettings, configSettings.nombreInstitucion);
           await m.addColumn(configSettings, configSettings.estado);
-
           await m.renameColumn(
               configSettings, 'jefe_nombre', configSettings.nombreJefe);
           await m.renameColumn(
               configSettings, 'jefe_apellido', configSettings.apellidoJefe);
           await m.renameColumn(
               configSettings, 'jefe_rango', configSettings.rangoJefe);
+        }
+        if (from < 11) {
+          await m.addColumn(configSettings, configSettings.preguntaSeguridad);
+          await m.addColumn(configSettings, configSettings.respuestaSeguridad);
+        }
+        if (from < 12) {
+          await m.createTable(usuariosSistema);
+        }
+        if (from < 13) {
+          await m.addColumn(usuariosSistema, usuariosSistema.preguntaSeguridad);
+          await m.addColumn(
+              usuariosSistema, usuariosSistema.respuestaSeguridad);
+        }
+        if (from < 14) {
+          // V14: Nuevos campos de ubicación detallada
+          await m.addColumn(configSettings, configSettings.parqueNombre);
+          await m.addColumn(configSettings, configSettings.ciudad);
         }
       },
     );
@@ -268,12 +301,18 @@ class AppDatabase extends _$AppDatabase {
         const UbicacionesCompanion(nombre: Value('Sede Administrativa')));
     await into(configSettings).insert(
       ConfigSettingsCompanion.insert(
-        sectorNombre: const Value('Configuración Inicial'),
+        parqueNombre: const Value('P.N. Gral. Juan Pablo Peñaloza'),
+        sectorNombre: const Value('Bailadores'),
+        ciudad: const Value('Bailadores'),
+        municipio: const Value('Rivas Dávila'),
+        estado: const Value('Mérida'),
         nombreJefe: 'Administrador',
         rangoJefe: 'GP/.',
         jefeCargo: const Value('Jefe de Sector'),
         usuario: 'admin',
         password: 'admin123',
+        preguntaSeguridad: const Value('¿Año de fundación de Inparques?'),
+        respuestaSeguridad: const Value('1973'),
       ),
     );
   }
@@ -291,10 +330,6 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'db.sqlite'));
-
-    // OPTIMIZACIÓN MULTIPLATAFORMA: createInBackground
-    // Ejecuta las operaciones de SQLite en un Isolate separado.
-    // Evita congelamientos de UI en el Tecno Spark 20 y mejora la fluidez en Windows/Linux.
     return NativeDatabase.createInBackground(file);
   });
 }

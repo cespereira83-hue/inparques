@@ -1,8 +1,9 @@
+import 'dart:io'; // Agregado para manejo de archivos
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../../../data/local/app_database.dart';
+import '../../../core/utils/file_helper.dart'; // INYECTAMOS EL HELPER
 
 class IncidentGenerator {
   static Future<void> generarActaInasistencia({
@@ -72,10 +73,21 @@ class IncidentGenerator {
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'Acta_Inasistencia_${inasistente.cedula}.pdf',
-    );
+    // NUEVA LÓGICA DE GUARDADO Y COMPARTIR
+    final pdfBytes = await pdf.save();
+    final nombreArchivo =
+        'Acta_Inasistencia_${inasistente.cedula}_${fechaFalta.millisecondsSinceEpoch}.pdf';
+
+    // 1. Obtener la carpeta pública
+    final rutaCarpeta = await FileHelper.obtenerCarpetaPublicaInparques();
+    final rutaCompleta = '$rutaCarpeta/$nombreArchivo';
+
+    // 2. Guardar el archivo físicamente
+    final archivoFisico = File(rutaCompleta);
+    await archivoFisico.writeAsBytes(pdfBytes);
+
+    // 3. Compartir el archivo automáticamente
+    await FileHelper.compartirArchivo(rutaCompleta, nombreArchivo);
   }
 
   static pw.Widget _buildFirmasCascada(Funcionario? jefeServicio,
@@ -85,17 +97,14 @@ class IncidentGenerator {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
           children: [
-            // Firma de Autoridad
             if (jefeServicio != null)
               _buildFirmaIndividual(
                   "${jefeServicio.nombres} ${jefeServicio.apellidos}",
                   jefeServicio.cedula,
                   "JEFE DE SERVICIO")
             else
-              // CORRECCIÓN: nombreJefe, rangoJefe (Sin null check excesivo si drift lo garantiza)
               _buildFirmaIndividual(
                   config.nombreJefe, "ADMIN", "${config.rangoJefe} (SISTEMA)"),
-
             if (testigos.isNotEmpty)
               _buildFirmaIndividual(
                   "${testigos[0].nombres} ${testigos[0].apellidos}",

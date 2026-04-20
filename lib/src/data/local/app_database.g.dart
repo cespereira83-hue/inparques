@@ -3,6 +3,361 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $UsuariosSistemaTable extends UsuariosSistema
+    with TableInfo<$UsuariosSistemaTable, UsuariosSistemaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UsuariosSistemaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _usuarioMeta =
+      const VerificationMeta('usuario');
+  @override
+  late final GeneratedColumn<String> usuario = GeneratedColumn<String>(
+      'usuario', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _passwordMeta =
+      const VerificationMeta('password');
+  @override
+  late final GeneratedColumn<String> password = GeneratedColumn<String>(
+      'password', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _rolMeta = const VerificationMeta('rol');
+  @override
+  late final GeneratedColumn<String> rol = GeneratedColumn<String>(
+      'rol', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('Operador'));
+  static const VerificationMeta _preguntaSeguridadMeta =
+      const VerificationMeta('preguntaSeguridad');
+  @override
+  late final GeneratedColumn<String> preguntaSeguridad =
+      GeneratedColumn<String>('pregunta_seguridad', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _respuestaSeguridadMeta =
+      const VerificationMeta('respuestaSeguridad');
+  @override
+  late final GeneratedColumn<String> respuestaSeguridad =
+      GeneratedColumn<String>('respuesta_seguridad', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, usuario, password, rol, preguntaSeguridad, respuestaSeguridad];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'usuarios_sistema';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<UsuariosSistemaData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('usuario')) {
+      context.handle(_usuarioMeta,
+          usuario.isAcceptableOrUnknown(data['usuario']!, _usuarioMeta));
+    } else if (isInserting) {
+      context.missing(_usuarioMeta);
+    }
+    if (data.containsKey('password')) {
+      context.handle(_passwordMeta,
+          password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+    } else if (isInserting) {
+      context.missing(_passwordMeta);
+    }
+    if (data.containsKey('rol')) {
+      context.handle(
+          _rolMeta, rol.isAcceptableOrUnknown(data['rol']!, _rolMeta));
+    }
+    if (data.containsKey('pregunta_seguridad')) {
+      context.handle(
+          _preguntaSeguridadMeta,
+          preguntaSeguridad.isAcceptableOrUnknown(
+              data['pregunta_seguridad']!, _preguntaSeguridadMeta));
+    }
+    if (data.containsKey('respuesta_seguridad')) {
+      context.handle(
+          _respuestaSeguridadMeta,
+          respuestaSeguridad.isAcceptableOrUnknown(
+              data['respuesta_seguridad']!, _respuestaSeguridadMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UsuariosSistemaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UsuariosSistemaData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      usuario: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}usuario'])!,
+      password: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}password'])!,
+      rol: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}rol'])!,
+      preguntaSeguridad: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}pregunta_seguridad']),
+      respuestaSeguridad: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}respuesta_seguridad']),
+    );
+  }
+
+  @override
+  $UsuariosSistemaTable createAlias(String alias) {
+    return $UsuariosSistemaTable(attachedDatabase, alias);
+  }
+}
+
+class UsuariosSistemaData extends DataClass
+    implements Insertable<UsuariosSistemaData> {
+  final int id;
+  final String usuario;
+  final String password;
+  final String rol;
+  final String? preguntaSeguridad;
+  final String? respuestaSeguridad;
+  const UsuariosSistemaData(
+      {required this.id,
+      required this.usuario,
+      required this.password,
+      required this.rol,
+      this.preguntaSeguridad,
+      this.respuestaSeguridad});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['usuario'] = Variable<String>(usuario);
+    map['password'] = Variable<String>(password);
+    map['rol'] = Variable<String>(rol);
+    if (!nullToAbsent || preguntaSeguridad != null) {
+      map['pregunta_seguridad'] = Variable<String>(preguntaSeguridad);
+    }
+    if (!nullToAbsent || respuestaSeguridad != null) {
+      map['respuesta_seguridad'] = Variable<String>(respuestaSeguridad);
+    }
+    return map;
+  }
+
+  UsuariosSistemaCompanion toCompanion(bool nullToAbsent) {
+    return UsuariosSistemaCompanion(
+      id: Value(id),
+      usuario: Value(usuario),
+      password: Value(password),
+      rol: Value(rol),
+      preguntaSeguridad: preguntaSeguridad == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preguntaSeguridad),
+      respuestaSeguridad: respuestaSeguridad == null && nullToAbsent
+          ? const Value.absent()
+          : Value(respuestaSeguridad),
+    );
+  }
+
+  factory UsuariosSistemaData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UsuariosSistemaData(
+      id: serializer.fromJson<int>(json['id']),
+      usuario: serializer.fromJson<String>(json['usuario']),
+      password: serializer.fromJson<String>(json['password']),
+      rol: serializer.fromJson<String>(json['rol']),
+      preguntaSeguridad:
+          serializer.fromJson<String?>(json['preguntaSeguridad']),
+      respuestaSeguridad:
+          serializer.fromJson<String?>(json['respuestaSeguridad']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'usuario': serializer.toJson<String>(usuario),
+      'password': serializer.toJson<String>(password),
+      'rol': serializer.toJson<String>(rol),
+      'preguntaSeguridad': serializer.toJson<String?>(preguntaSeguridad),
+      'respuestaSeguridad': serializer.toJson<String?>(respuestaSeguridad),
+    };
+  }
+
+  UsuariosSistemaData copyWith(
+          {int? id,
+          String? usuario,
+          String? password,
+          String? rol,
+          Value<String?> preguntaSeguridad = const Value.absent(),
+          Value<String?> respuestaSeguridad = const Value.absent()}) =>
+      UsuariosSistemaData(
+        id: id ?? this.id,
+        usuario: usuario ?? this.usuario,
+        password: password ?? this.password,
+        rol: rol ?? this.rol,
+        preguntaSeguridad: preguntaSeguridad.present
+            ? preguntaSeguridad.value
+            : this.preguntaSeguridad,
+        respuestaSeguridad: respuestaSeguridad.present
+            ? respuestaSeguridad.value
+            : this.respuestaSeguridad,
+      );
+  UsuariosSistemaData copyWithCompanion(UsuariosSistemaCompanion data) {
+    return UsuariosSistemaData(
+      id: data.id.present ? data.id.value : this.id,
+      usuario: data.usuario.present ? data.usuario.value : this.usuario,
+      password: data.password.present ? data.password.value : this.password,
+      rol: data.rol.present ? data.rol.value : this.rol,
+      preguntaSeguridad: data.preguntaSeguridad.present
+          ? data.preguntaSeguridad.value
+          : this.preguntaSeguridad,
+      respuestaSeguridad: data.respuestaSeguridad.present
+          ? data.respuestaSeguridad.value
+          : this.respuestaSeguridad,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UsuariosSistemaData(')
+          ..write('id: $id, ')
+          ..write('usuario: $usuario, ')
+          ..write('password: $password, ')
+          ..write('rol: $rol, ')
+          ..write('preguntaSeguridad: $preguntaSeguridad, ')
+          ..write('respuestaSeguridad: $respuestaSeguridad')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, usuario, password, rol, preguntaSeguridad, respuestaSeguridad);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UsuariosSistemaData &&
+          other.id == this.id &&
+          other.usuario == this.usuario &&
+          other.password == this.password &&
+          other.rol == this.rol &&
+          other.preguntaSeguridad == this.preguntaSeguridad &&
+          other.respuestaSeguridad == this.respuestaSeguridad);
+}
+
+class UsuariosSistemaCompanion extends UpdateCompanion<UsuariosSistemaData> {
+  final Value<int> id;
+  final Value<String> usuario;
+  final Value<String> password;
+  final Value<String> rol;
+  final Value<String?> preguntaSeguridad;
+  final Value<String?> respuestaSeguridad;
+  const UsuariosSistemaCompanion({
+    this.id = const Value.absent(),
+    this.usuario = const Value.absent(),
+    this.password = const Value.absent(),
+    this.rol = const Value.absent(),
+    this.preguntaSeguridad = const Value.absent(),
+    this.respuestaSeguridad = const Value.absent(),
+  });
+  UsuariosSistemaCompanion.insert({
+    this.id = const Value.absent(),
+    required String usuario,
+    required String password,
+    this.rol = const Value.absent(),
+    this.preguntaSeguridad = const Value.absent(),
+    this.respuestaSeguridad = const Value.absent(),
+  })  : usuario = Value(usuario),
+        password = Value(password);
+  static Insertable<UsuariosSistemaData> custom({
+    Expression<int>? id,
+    Expression<String>? usuario,
+    Expression<String>? password,
+    Expression<String>? rol,
+    Expression<String>? preguntaSeguridad,
+    Expression<String>? respuestaSeguridad,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (usuario != null) 'usuario': usuario,
+      if (password != null) 'password': password,
+      if (rol != null) 'rol': rol,
+      if (preguntaSeguridad != null) 'pregunta_seguridad': preguntaSeguridad,
+      if (respuestaSeguridad != null) 'respuesta_seguridad': respuestaSeguridad,
+    });
+  }
+
+  UsuariosSistemaCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? usuario,
+      Value<String>? password,
+      Value<String>? rol,
+      Value<String?>? preguntaSeguridad,
+      Value<String?>? respuestaSeguridad}) {
+    return UsuariosSistemaCompanion(
+      id: id ?? this.id,
+      usuario: usuario ?? this.usuario,
+      password: password ?? this.password,
+      rol: rol ?? this.rol,
+      preguntaSeguridad: preguntaSeguridad ?? this.preguntaSeguridad,
+      respuestaSeguridad: respuestaSeguridad ?? this.respuestaSeguridad,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (usuario.present) {
+      map['usuario'] = Variable<String>(usuario.value);
+    }
+    if (password.present) {
+      map['password'] = Variable<String>(password.value);
+    }
+    if (rol.present) {
+      map['rol'] = Variable<String>(rol.value);
+    }
+    if (preguntaSeguridad.present) {
+      map['pregunta_seguridad'] = Variable<String>(preguntaSeguridad.value);
+    }
+    if (respuestaSeguridad.present) {
+      map['respuesta_seguridad'] = Variable<String>(respuestaSeguridad.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UsuariosSistemaCompanion(')
+          ..write('id: $id, ')
+          ..write('usuario: $usuario, ')
+          ..write('password: $password, ')
+          ..write('rol: $rol, ')
+          ..write('preguntaSeguridad: $preguntaSeguridad, ')
+          ..write('respuestaSeguridad: $respuestaSeguridad')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ConfigSettingsTable extends ConfigSettings
     with TableInfo<$ConfigSettingsTable, ConfigSetting> {
   @override
@@ -26,11 +381,22 @@ class $ConfigSettingsTable extends ConfigSettings
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           defaultValue: const Constant('INPARQUES'));
+  static const VerificationMeta _parqueNombreMeta =
+      const VerificationMeta('parqueNombre');
+  @override
+  late final GeneratedColumn<String> parqueNombre = GeneratedColumn<String>(
+      'parque_nombre', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _sectorNombreMeta =
       const VerificationMeta('sectorNombre');
   @override
   late final GeneratedColumn<String> sectorNombre = GeneratedColumn<String>(
       'sector_nombre', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _ciudadMeta = const VerificationMeta('ciudad');
+  @override
+  late final GeneratedColumn<String> ciudad = GeneratedColumn<String>(
+      'ciudad', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _municipioMeta =
       const VerificationMeta('municipio');
@@ -81,11 +447,25 @@ class $ConfigSettingsTable extends ConfigSettings
   late final GeneratedColumn<String> password = GeneratedColumn<String>(
       'password', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _preguntaSeguridadMeta =
+      const VerificationMeta('preguntaSeguridad');
+  @override
+  late final GeneratedColumn<String> preguntaSeguridad =
+      GeneratedColumn<String>('pregunta_seguridad', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _respuestaSeguridadMeta =
+      const VerificationMeta('respuestaSeguridad');
+  @override
+  late final GeneratedColumn<String> respuestaSeguridad =
+      GeneratedColumn<String>('respuesta_seguridad', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
         nombreInstitucion,
+        parqueNombre,
         sectorNombre,
+        ciudad,
         municipio,
         estado,
         nombreJefe,
@@ -93,7 +473,9 @@ class $ConfigSettingsTable extends ConfigSettings
         rangoJefe,
         jefeCargo,
         usuario,
-        password
+        password,
+        preguntaSeguridad,
+        respuestaSeguridad
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -114,11 +496,21 @@ class $ConfigSettingsTable extends ConfigSettings
           nombreInstitucion.isAcceptableOrUnknown(
               data['nombre_institucion']!, _nombreInstitucionMeta));
     }
+    if (data.containsKey('parque_nombre')) {
+      context.handle(
+          _parqueNombreMeta,
+          parqueNombre.isAcceptableOrUnknown(
+              data['parque_nombre']!, _parqueNombreMeta));
+    }
     if (data.containsKey('sector_nombre')) {
       context.handle(
           _sectorNombreMeta,
           sectorNombre.isAcceptableOrUnknown(
               data['sector_nombre']!, _sectorNombreMeta));
+    }
+    if (data.containsKey('ciudad')) {
+      context.handle(_ciudadMeta,
+          ciudad.isAcceptableOrUnknown(data['ciudad']!, _ciudadMeta));
     }
     if (data.containsKey('municipio')) {
       context.handle(_municipioMeta,
@@ -164,6 +556,18 @@ class $ConfigSettingsTable extends ConfigSettings
     } else if (isInserting) {
       context.missing(_passwordMeta);
     }
+    if (data.containsKey('pregunta_seguridad')) {
+      context.handle(
+          _preguntaSeguridadMeta,
+          preguntaSeguridad.isAcceptableOrUnknown(
+              data['pregunta_seguridad']!, _preguntaSeguridadMeta));
+    }
+    if (data.containsKey('respuesta_seguridad')) {
+      context.handle(
+          _respuestaSeguridadMeta,
+          respuestaSeguridad.isAcceptableOrUnknown(
+              data['respuesta_seguridad']!, _respuestaSeguridadMeta));
+    }
     return context;
   }
 
@@ -177,8 +581,12 @@ class $ConfigSettingsTable extends ConfigSettings
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       nombreInstitucion: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}nombre_institucion'])!,
+      parqueNombre: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}parque_nombre']),
       sectorNombre: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}sector_nombre']),
+      ciudad: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}ciudad']),
       municipio: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}municipio']),
       estado: attachedDatabase.typeMapping
@@ -195,6 +603,10 @@ class $ConfigSettingsTable extends ConfigSettings
           .read(DriftSqlType.string, data['${effectivePrefix}usuario'])!,
       password: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}password'])!,
+      preguntaSeguridad: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}pregunta_seguridad']),
+      respuestaSeguridad: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}respuesta_seguridad']),
     );
   }
 
@@ -207,7 +619,9 @@ class $ConfigSettingsTable extends ConfigSettings
 class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
   final int id;
   final String nombreInstitucion;
+  final String? parqueNombre;
   final String? sectorNombre;
+  final String? ciudad;
   final String? municipio;
   final String? estado;
   final String nombreJefe;
@@ -216,10 +630,14 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
   final String jefeCargo;
   final String usuario;
   final String password;
+  final String? preguntaSeguridad;
+  final String? respuestaSeguridad;
   const ConfigSetting(
       {required this.id,
       required this.nombreInstitucion,
+      this.parqueNombre,
       this.sectorNombre,
+      this.ciudad,
       this.municipio,
       this.estado,
       required this.nombreJefe,
@@ -227,14 +645,22 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       required this.rangoJefe,
       required this.jefeCargo,
       required this.usuario,
-      required this.password});
+      required this.password,
+      this.preguntaSeguridad,
+      this.respuestaSeguridad});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['nombre_institucion'] = Variable<String>(nombreInstitucion);
+    if (!nullToAbsent || parqueNombre != null) {
+      map['parque_nombre'] = Variable<String>(parqueNombre);
+    }
     if (!nullToAbsent || sectorNombre != null) {
       map['sector_nombre'] = Variable<String>(sectorNombre);
+    }
+    if (!nullToAbsent || ciudad != null) {
+      map['ciudad'] = Variable<String>(ciudad);
     }
     if (!nullToAbsent || municipio != null) {
       map['municipio'] = Variable<String>(municipio);
@@ -250,6 +676,12 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
     map['jefe_cargo'] = Variable<String>(jefeCargo);
     map['usuario'] = Variable<String>(usuario);
     map['password'] = Variable<String>(password);
+    if (!nullToAbsent || preguntaSeguridad != null) {
+      map['pregunta_seguridad'] = Variable<String>(preguntaSeguridad);
+    }
+    if (!nullToAbsent || respuestaSeguridad != null) {
+      map['respuesta_seguridad'] = Variable<String>(respuestaSeguridad);
+    }
     return map;
   }
 
@@ -257,9 +689,14 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
     return ConfigSettingsCompanion(
       id: Value(id),
       nombreInstitucion: Value(nombreInstitucion),
+      parqueNombre: parqueNombre == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parqueNombre),
       sectorNombre: sectorNombre == null && nullToAbsent
           ? const Value.absent()
           : Value(sectorNombre),
+      ciudad:
+          ciudad == null && nullToAbsent ? const Value.absent() : Value(ciudad),
       municipio: municipio == null && nullToAbsent
           ? const Value.absent()
           : Value(municipio),
@@ -273,6 +710,12 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       jefeCargo: Value(jefeCargo),
       usuario: Value(usuario),
       password: Value(password),
+      preguntaSeguridad: preguntaSeguridad == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preguntaSeguridad),
+      respuestaSeguridad: respuestaSeguridad == null && nullToAbsent
+          ? const Value.absent()
+          : Value(respuestaSeguridad),
     );
   }
 
@@ -282,7 +725,9 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
     return ConfigSetting(
       id: serializer.fromJson<int>(json['id']),
       nombreInstitucion: serializer.fromJson<String>(json['nombreInstitucion']),
+      parqueNombre: serializer.fromJson<String?>(json['parqueNombre']),
       sectorNombre: serializer.fromJson<String?>(json['sectorNombre']),
+      ciudad: serializer.fromJson<String?>(json['ciudad']),
       municipio: serializer.fromJson<String?>(json['municipio']),
       estado: serializer.fromJson<String?>(json['estado']),
       nombreJefe: serializer.fromJson<String>(json['nombreJefe']),
@@ -291,6 +736,10 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       jefeCargo: serializer.fromJson<String>(json['jefeCargo']),
       usuario: serializer.fromJson<String>(json['usuario']),
       password: serializer.fromJson<String>(json['password']),
+      preguntaSeguridad:
+          serializer.fromJson<String?>(json['preguntaSeguridad']),
+      respuestaSeguridad:
+          serializer.fromJson<String?>(json['respuestaSeguridad']),
     );
   }
   @override
@@ -299,7 +748,9 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'nombreInstitucion': serializer.toJson<String>(nombreInstitucion),
+      'parqueNombre': serializer.toJson<String?>(parqueNombre),
       'sectorNombre': serializer.toJson<String?>(sectorNombre),
+      'ciudad': serializer.toJson<String?>(ciudad),
       'municipio': serializer.toJson<String?>(municipio),
       'estado': serializer.toJson<String?>(estado),
       'nombreJefe': serializer.toJson<String>(nombreJefe),
@@ -308,13 +759,17 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       'jefeCargo': serializer.toJson<String>(jefeCargo),
       'usuario': serializer.toJson<String>(usuario),
       'password': serializer.toJson<String>(password),
+      'preguntaSeguridad': serializer.toJson<String?>(preguntaSeguridad),
+      'respuestaSeguridad': serializer.toJson<String?>(respuestaSeguridad),
     };
   }
 
   ConfigSetting copyWith(
           {int? id,
           String? nombreInstitucion,
+          Value<String?> parqueNombre = const Value.absent(),
           Value<String?> sectorNombre = const Value.absent(),
+          Value<String?> ciudad = const Value.absent(),
           Value<String?> municipio = const Value.absent(),
           Value<String?> estado = const Value.absent(),
           String? nombreJefe,
@@ -322,12 +777,17 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
           String? rangoJefe,
           String? jefeCargo,
           String? usuario,
-          String? password}) =>
+          String? password,
+          Value<String?> preguntaSeguridad = const Value.absent(),
+          Value<String?> respuestaSeguridad = const Value.absent()}) =>
       ConfigSetting(
         id: id ?? this.id,
         nombreInstitucion: nombreInstitucion ?? this.nombreInstitucion,
+        parqueNombre:
+            parqueNombre.present ? parqueNombre.value : this.parqueNombre,
         sectorNombre:
             sectorNombre.present ? sectorNombre.value : this.sectorNombre,
+        ciudad: ciudad.present ? ciudad.value : this.ciudad,
         municipio: municipio.present ? municipio.value : this.municipio,
         estado: estado.present ? estado.value : this.estado,
         nombreJefe: nombreJefe ?? this.nombreJefe,
@@ -337,6 +797,12 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
         jefeCargo: jefeCargo ?? this.jefeCargo,
         usuario: usuario ?? this.usuario,
         password: password ?? this.password,
+        preguntaSeguridad: preguntaSeguridad.present
+            ? preguntaSeguridad.value
+            : this.preguntaSeguridad,
+        respuestaSeguridad: respuestaSeguridad.present
+            ? respuestaSeguridad.value
+            : this.respuestaSeguridad,
       );
   ConfigSetting copyWithCompanion(ConfigSettingsCompanion data) {
     return ConfigSetting(
@@ -344,9 +810,13 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       nombreInstitucion: data.nombreInstitucion.present
           ? data.nombreInstitucion.value
           : this.nombreInstitucion,
+      parqueNombre: data.parqueNombre.present
+          ? data.parqueNombre.value
+          : this.parqueNombre,
       sectorNombre: data.sectorNombre.present
           ? data.sectorNombre.value
           : this.sectorNombre,
+      ciudad: data.ciudad.present ? data.ciudad.value : this.ciudad,
       municipio: data.municipio.present ? data.municipio.value : this.municipio,
       estado: data.estado.present ? data.estado.value : this.estado,
       nombreJefe:
@@ -358,6 +828,12 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       jefeCargo: data.jefeCargo.present ? data.jefeCargo.value : this.jefeCargo,
       usuario: data.usuario.present ? data.usuario.value : this.usuario,
       password: data.password.present ? data.password.value : this.password,
+      preguntaSeguridad: data.preguntaSeguridad.present
+          ? data.preguntaSeguridad.value
+          : this.preguntaSeguridad,
+      respuestaSeguridad: data.respuestaSeguridad.present
+          ? data.respuestaSeguridad.value
+          : this.respuestaSeguridad,
     );
   }
 
@@ -366,7 +842,9 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
     return (StringBuffer('ConfigSetting(')
           ..write('id: $id, ')
           ..write('nombreInstitucion: $nombreInstitucion, ')
+          ..write('parqueNombre: $parqueNombre, ')
           ..write('sectorNombre: $sectorNombre, ')
+          ..write('ciudad: $ciudad, ')
           ..write('municipio: $municipio, ')
           ..write('estado: $estado, ')
           ..write('nombreJefe: $nombreJefe, ')
@@ -374,7 +852,9 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
           ..write('rangoJefe: $rangoJefe, ')
           ..write('jefeCargo: $jefeCargo, ')
           ..write('usuario: $usuario, ')
-          ..write('password: $password')
+          ..write('password: $password, ')
+          ..write('preguntaSeguridad: $preguntaSeguridad, ')
+          ..write('respuestaSeguridad: $respuestaSeguridad')
           ..write(')'))
         .toString();
   }
@@ -383,7 +863,9 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
   int get hashCode => Object.hash(
       id,
       nombreInstitucion,
+      parqueNombre,
       sectorNombre,
+      ciudad,
       municipio,
       estado,
       nombreJefe,
@@ -391,14 +873,18 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
       rangoJefe,
       jefeCargo,
       usuario,
-      password);
+      password,
+      preguntaSeguridad,
+      respuestaSeguridad);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ConfigSetting &&
           other.id == this.id &&
           other.nombreInstitucion == this.nombreInstitucion &&
+          other.parqueNombre == this.parqueNombre &&
           other.sectorNombre == this.sectorNombre &&
+          other.ciudad == this.ciudad &&
           other.municipio == this.municipio &&
           other.estado == this.estado &&
           other.nombreJefe == this.nombreJefe &&
@@ -406,13 +892,17 @@ class ConfigSetting extends DataClass implements Insertable<ConfigSetting> {
           other.rangoJefe == this.rangoJefe &&
           other.jefeCargo == this.jefeCargo &&
           other.usuario == this.usuario &&
-          other.password == this.password);
+          other.password == this.password &&
+          other.preguntaSeguridad == this.preguntaSeguridad &&
+          other.respuestaSeguridad == this.respuestaSeguridad);
 }
 
 class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
   final Value<int> id;
   final Value<String> nombreInstitucion;
+  final Value<String?> parqueNombre;
   final Value<String?> sectorNombre;
+  final Value<String?> ciudad;
   final Value<String?> municipio;
   final Value<String?> estado;
   final Value<String> nombreJefe;
@@ -421,10 +911,14 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
   final Value<String> jefeCargo;
   final Value<String> usuario;
   final Value<String> password;
+  final Value<String?> preguntaSeguridad;
+  final Value<String?> respuestaSeguridad;
   const ConfigSettingsCompanion({
     this.id = const Value.absent(),
     this.nombreInstitucion = const Value.absent(),
+    this.parqueNombre = const Value.absent(),
     this.sectorNombre = const Value.absent(),
+    this.ciudad = const Value.absent(),
     this.municipio = const Value.absent(),
     this.estado = const Value.absent(),
     this.nombreJefe = const Value.absent(),
@@ -433,11 +927,15 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     this.jefeCargo = const Value.absent(),
     this.usuario = const Value.absent(),
     this.password = const Value.absent(),
+    this.preguntaSeguridad = const Value.absent(),
+    this.respuestaSeguridad = const Value.absent(),
   });
   ConfigSettingsCompanion.insert({
     this.id = const Value.absent(),
     this.nombreInstitucion = const Value.absent(),
+    this.parqueNombre = const Value.absent(),
     this.sectorNombre = const Value.absent(),
+    this.ciudad = const Value.absent(),
     this.municipio = const Value.absent(),
     this.estado = const Value.absent(),
     required String nombreJefe,
@@ -446,6 +944,8 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     this.jefeCargo = const Value.absent(),
     required String usuario,
     required String password,
+    this.preguntaSeguridad = const Value.absent(),
+    this.respuestaSeguridad = const Value.absent(),
   })  : nombreJefe = Value(nombreJefe),
         rangoJefe = Value(rangoJefe),
         usuario = Value(usuario),
@@ -453,7 +953,9 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
   static Insertable<ConfigSetting> custom({
     Expression<int>? id,
     Expression<String>? nombreInstitucion,
+    Expression<String>? parqueNombre,
     Expression<String>? sectorNombre,
+    Expression<String>? ciudad,
     Expression<String>? municipio,
     Expression<String>? estado,
     Expression<String>? nombreJefe,
@@ -462,11 +964,15 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     Expression<String>? jefeCargo,
     Expression<String>? usuario,
     Expression<String>? password,
+    Expression<String>? preguntaSeguridad,
+    Expression<String>? respuestaSeguridad,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (nombreInstitucion != null) 'nombre_institucion': nombreInstitucion,
+      if (parqueNombre != null) 'parque_nombre': parqueNombre,
       if (sectorNombre != null) 'sector_nombre': sectorNombre,
+      if (ciudad != null) 'ciudad': ciudad,
       if (municipio != null) 'municipio': municipio,
       if (estado != null) 'estado': estado,
       if (nombreJefe != null) 'nombre_jefe': nombreJefe,
@@ -475,13 +981,17 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
       if (jefeCargo != null) 'jefe_cargo': jefeCargo,
       if (usuario != null) 'usuario': usuario,
       if (password != null) 'password': password,
+      if (preguntaSeguridad != null) 'pregunta_seguridad': preguntaSeguridad,
+      if (respuestaSeguridad != null) 'respuesta_seguridad': respuestaSeguridad,
     });
   }
 
   ConfigSettingsCompanion copyWith(
       {Value<int>? id,
       Value<String>? nombreInstitucion,
+      Value<String?>? parqueNombre,
       Value<String?>? sectorNombre,
+      Value<String?>? ciudad,
       Value<String?>? municipio,
       Value<String?>? estado,
       Value<String>? nombreJefe,
@@ -489,11 +999,15 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
       Value<String>? rangoJefe,
       Value<String>? jefeCargo,
       Value<String>? usuario,
-      Value<String>? password}) {
+      Value<String>? password,
+      Value<String?>? preguntaSeguridad,
+      Value<String?>? respuestaSeguridad}) {
     return ConfigSettingsCompanion(
       id: id ?? this.id,
       nombreInstitucion: nombreInstitucion ?? this.nombreInstitucion,
+      parqueNombre: parqueNombre ?? this.parqueNombre,
       sectorNombre: sectorNombre ?? this.sectorNombre,
+      ciudad: ciudad ?? this.ciudad,
       municipio: municipio ?? this.municipio,
       estado: estado ?? this.estado,
       nombreJefe: nombreJefe ?? this.nombreJefe,
@@ -502,6 +1016,8 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
       jefeCargo: jefeCargo ?? this.jefeCargo,
       usuario: usuario ?? this.usuario,
       password: password ?? this.password,
+      preguntaSeguridad: preguntaSeguridad ?? this.preguntaSeguridad,
+      respuestaSeguridad: respuestaSeguridad ?? this.respuestaSeguridad,
     );
   }
 
@@ -514,8 +1030,14 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     if (nombreInstitucion.present) {
       map['nombre_institucion'] = Variable<String>(nombreInstitucion.value);
     }
+    if (parqueNombre.present) {
+      map['parque_nombre'] = Variable<String>(parqueNombre.value);
+    }
     if (sectorNombre.present) {
       map['sector_nombre'] = Variable<String>(sectorNombre.value);
+    }
+    if (ciudad.present) {
+      map['ciudad'] = Variable<String>(ciudad.value);
     }
     if (municipio.present) {
       map['municipio'] = Variable<String>(municipio.value);
@@ -541,6 +1063,12 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     if (password.present) {
       map['password'] = Variable<String>(password.value);
     }
+    if (preguntaSeguridad.present) {
+      map['pregunta_seguridad'] = Variable<String>(preguntaSeguridad.value);
+    }
+    if (respuestaSeguridad.present) {
+      map['respuesta_seguridad'] = Variable<String>(respuestaSeguridad.value);
+    }
     return map;
   }
 
@@ -549,7 +1077,9 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
     return (StringBuffer('ConfigSettingsCompanion(')
           ..write('id: $id, ')
           ..write('nombreInstitucion: $nombreInstitucion, ')
+          ..write('parqueNombre: $parqueNombre, ')
           ..write('sectorNombre: $sectorNombre, ')
+          ..write('ciudad: $ciudad, ')
           ..write('municipio: $municipio, ')
           ..write('estado: $estado, ')
           ..write('nombreJefe: $nombreJefe, ')
@@ -557,7 +1087,9 @@ class ConfigSettingsCompanion extends UpdateCompanion<ConfigSetting> {
           ..write('rangoJefe: $rangoJefe, ')
           ..write('jefeCargo: $jefeCargo, ')
           ..write('usuario: $usuario, ')
-          ..write('password: $password')
+          ..write('password: $password, ')
+          ..write('preguntaSeguridad: $preguntaSeguridad, ')
+          ..write('respuestaSeguridad: $respuestaSeguridad')
           ..write(')'))
         .toString();
   }
@@ -5626,6 +6158,8 @@ class IncidenciasCompanion extends UpdateCompanion<Incidencia> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $UsuariosSistemaTable usuariosSistema =
+      $UsuariosSistemaTable(this);
   late final $ConfigSettingsTable configSettings = $ConfigSettingsTable(this);
   late final $RangosTable rangos = $RangosTable(this);
   late final $TiposGuardiaTable tiposGuardia = $TiposGuardiaTable(this);
@@ -5648,6 +6182,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+        usuariosSistema,
         configSettings,
         rangos,
         tiposGuardia,
@@ -5665,11 +6200,200 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ];
 }
 
+typedef $$UsuariosSistemaTableCreateCompanionBuilder = UsuariosSistemaCompanion
+    Function({
+  Value<int> id,
+  required String usuario,
+  required String password,
+  Value<String> rol,
+  Value<String?> preguntaSeguridad,
+  Value<String?> respuestaSeguridad,
+});
+typedef $$UsuariosSistemaTableUpdateCompanionBuilder = UsuariosSistemaCompanion
+    Function({
+  Value<int> id,
+  Value<String> usuario,
+  Value<String> password,
+  Value<String> rol,
+  Value<String?> preguntaSeguridad,
+  Value<String?> respuestaSeguridad,
+});
+
+class $$UsuariosSistemaTableFilterComposer
+    extends Composer<_$AppDatabase, $UsuariosSistemaTable> {
+  $$UsuariosSistemaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get usuario => $composableBuilder(
+      column: $table.usuario, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get rol => $composableBuilder(
+      column: $table.rol, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$UsuariosSistemaTableOrderingComposer
+    extends Composer<_$AppDatabase, $UsuariosSistemaTable> {
+  $$UsuariosSistemaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get usuario => $composableBuilder(
+      column: $table.usuario, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get rol => $composableBuilder(
+      column: $table.rol, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$UsuariosSistemaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UsuariosSistemaTable> {
+  $$UsuariosSistemaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get usuario =>
+      $composableBuilder(column: $table.usuario, builder: (column) => column);
+
+  GeneratedColumn<String> get password =>
+      $composableBuilder(column: $table.password, builder: (column) => column);
+
+  GeneratedColumn<String> get rol =>
+      $composableBuilder(column: $table.rol, builder: (column) => column);
+
+  GeneratedColumn<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad, builder: (column) => column);
+
+  GeneratedColumn<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad, builder: (column) => column);
+}
+
+class $$UsuariosSistemaTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $UsuariosSistemaTable,
+    UsuariosSistemaData,
+    $$UsuariosSistemaTableFilterComposer,
+    $$UsuariosSistemaTableOrderingComposer,
+    $$UsuariosSistemaTableAnnotationComposer,
+    $$UsuariosSistemaTableCreateCompanionBuilder,
+    $$UsuariosSistemaTableUpdateCompanionBuilder,
+    (
+      UsuariosSistemaData,
+      BaseReferences<_$AppDatabase, $UsuariosSistemaTable, UsuariosSistemaData>
+    ),
+    UsuariosSistemaData,
+    PrefetchHooks Function()> {
+  $$UsuariosSistemaTableTableManager(
+      _$AppDatabase db, $UsuariosSistemaTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UsuariosSistemaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UsuariosSistemaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UsuariosSistemaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> usuario = const Value.absent(),
+            Value<String> password = const Value.absent(),
+            Value<String> rol = const Value.absent(),
+            Value<String?> preguntaSeguridad = const Value.absent(),
+            Value<String?> respuestaSeguridad = const Value.absent(),
+          }) =>
+              UsuariosSistemaCompanion(
+            id: id,
+            usuario: usuario,
+            password: password,
+            rol: rol,
+            preguntaSeguridad: preguntaSeguridad,
+            respuestaSeguridad: respuestaSeguridad,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String usuario,
+            required String password,
+            Value<String> rol = const Value.absent(),
+            Value<String?> preguntaSeguridad = const Value.absent(),
+            Value<String?> respuestaSeguridad = const Value.absent(),
+          }) =>
+              UsuariosSistemaCompanion.insert(
+            id: id,
+            usuario: usuario,
+            password: password,
+            rol: rol,
+            preguntaSeguridad: preguntaSeguridad,
+            respuestaSeguridad: respuestaSeguridad,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$UsuariosSistemaTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $UsuariosSistemaTable,
+    UsuariosSistemaData,
+    $$UsuariosSistemaTableFilterComposer,
+    $$UsuariosSistemaTableOrderingComposer,
+    $$UsuariosSistemaTableAnnotationComposer,
+    $$UsuariosSistemaTableCreateCompanionBuilder,
+    $$UsuariosSistemaTableUpdateCompanionBuilder,
+    (
+      UsuariosSistemaData,
+      BaseReferences<_$AppDatabase, $UsuariosSistemaTable, UsuariosSistemaData>
+    ),
+    UsuariosSistemaData,
+    PrefetchHooks Function()>;
 typedef $$ConfigSettingsTableCreateCompanionBuilder = ConfigSettingsCompanion
     Function({
   Value<int> id,
   Value<String> nombreInstitucion,
+  Value<String?> parqueNombre,
   Value<String?> sectorNombre,
+  Value<String?> ciudad,
   Value<String?> municipio,
   Value<String?> estado,
   required String nombreJefe,
@@ -5678,12 +6402,16 @@ typedef $$ConfigSettingsTableCreateCompanionBuilder = ConfigSettingsCompanion
   Value<String> jefeCargo,
   required String usuario,
   required String password,
+  Value<String?> preguntaSeguridad,
+  Value<String?> respuestaSeguridad,
 });
 typedef $$ConfigSettingsTableUpdateCompanionBuilder = ConfigSettingsCompanion
     Function({
   Value<int> id,
   Value<String> nombreInstitucion,
+  Value<String?> parqueNombre,
   Value<String?> sectorNombre,
+  Value<String?> ciudad,
   Value<String?> municipio,
   Value<String?> estado,
   Value<String> nombreJefe,
@@ -5692,6 +6420,8 @@ typedef $$ConfigSettingsTableUpdateCompanionBuilder = ConfigSettingsCompanion
   Value<String> jefeCargo,
   Value<String> usuario,
   Value<String> password,
+  Value<String?> preguntaSeguridad,
+  Value<String?> respuestaSeguridad,
 });
 
 class $$ConfigSettingsTableFilterComposer
@@ -5710,8 +6440,14 @@ class $$ConfigSettingsTableFilterComposer
       column: $table.nombreInstitucion,
       builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get parqueNombre => $composableBuilder(
+      column: $table.parqueNombre, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get sectorNombre => $composableBuilder(
       column: $table.sectorNombre, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get ciudad => $composableBuilder(
+      column: $table.ciudad, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get municipio => $composableBuilder(
       column: $table.municipio, builder: (column) => ColumnFilters(column));
@@ -5736,6 +6472,14 @@ class $$ConfigSettingsTableFilterComposer
 
   ColumnFilters<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$ConfigSettingsTableOrderingComposer
@@ -5754,9 +6498,16 @@ class $$ConfigSettingsTableOrderingComposer
       column: $table.nombreInstitucion,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get parqueNombre => $composableBuilder(
+      column: $table.parqueNombre,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get sectorNombre => $composableBuilder(
       column: $table.sectorNombre,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get ciudad => $composableBuilder(
+      column: $table.ciudad, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get municipio => $composableBuilder(
       column: $table.municipio, builder: (column) => ColumnOrderings(column));
@@ -5782,6 +6533,14 @@ class $$ConfigSettingsTableOrderingComposer
 
   ColumnOrderings<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$ConfigSettingsTableAnnotationComposer
@@ -5799,8 +6558,14 @@ class $$ConfigSettingsTableAnnotationComposer
   GeneratedColumn<String> get nombreInstitucion => $composableBuilder(
       column: $table.nombreInstitucion, builder: (column) => column);
 
+  GeneratedColumn<String> get parqueNombre => $composableBuilder(
+      column: $table.parqueNombre, builder: (column) => column);
+
   GeneratedColumn<String> get sectorNombre => $composableBuilder(
       column: $table.sectorNombre, builder: (column) => column);
+
+  GeneratedColumn<String> get ciudad =>
+      $composableBuilder(column: $table.ciudad, builder: (column) => column);
 
   GeneratedColumn<String> get municipio =>
       $composableBuilder(column: $table.municipio, builder: (column) => column);
@@ -5825,6 +6590,12 @@ class $$ConfigSettingsTableAnnotationComposer
 
   GeneratedColumn<String> get password =>
       $composableBuilder(column: $table.password, builder: (column) => column);
+
+  GeneratedColumn<String> get preguntaSeguridad => $composableBuilder(
+      column: $table.preguntaSeguridad, builder: (column) => column);
+
+  GeneratedColumn<String> get respuestaSeguridad => $composableBuilder(
+      column: $table.respuestaSeguridad, builder: (column) => column);
 }
 
 class $$ConfigSettingsTableTableManager extends RootTableManager<
@@ -5856,7 +6627,9 @@ class $$ConfigSettingsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> nombreInstitucion = const Value.absent(),
+            Value<String?> parqueNombre = const Value.absent(),
             Value<String?> sectorNombre = const Value.absent(),
+            Value<String?> ciudad = const Value.absent(),
             Value<String?> municipio = const Value.absent(),
             Value<String?> estado = const Value.absent(),
             Value<String> nombreJefe = const Value.absent(),
@@ -5865,11 +6638,15 @@ class $$ConfigSettingsTableTableManager extends RootTableManager<
             Value<String> jefeCargo = const Value.absent(),
             Value<String> usuario = const Value.absent(),
             Value<String> password = const Value.absent(),
+            Value<String?> preguntaSeguridad = const Value.absent(),
+            Value<String?> respuestaSeguridad = const Value.absent(),
           }) =>
               ConfigSettingsCompanion(
             id: id,
             nombreInstitucion: nombreInstitucion,
+            parqueNombre: parqueNombre,
             sectorNombre: sectorNombre,
+            ciudad: ciudad,
             municipio: municipio,
             estado: estado,
             nombreJefe: nombreJefe,
@@ -5878,11 +6655,15 @@ class $$ConfigSettingsTableTableManager extends RootTableManager<
             jefeCargo: jefeCargo,
             usuario: usuario,
             password: password,
+            preguntaSeguridad: preguntaSeguridad,
+            respuestaSeguridad: respuestaSeguridad,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> nombreInstitucion = const Value.absent(),
+            Value<String?> parqueNombre = const Value.absent(),
             Value<String?> sectorNombre = const Value.absent(),
+            Value<String?> ciudad = const Value.absent(),
             Value<String?> municipio = const Value.absent(),
             Value<String?> estado = const Value.absent(),
             required String nombreJefe,
@@ -5891,11 +6672,15 @@ class $$ConfigSettingsTableTableManager extends RootTableManager<
             Value<String> jefeCargo = const Value.absent(),
             required String usuario,
             required String password,
+            Value<String?> preguntaSeguridad = const Value.absent(),
+            Value<String?> respuestaSeguridad = const Value.absent(),
           }) =>
               ConfigSettingsCompanion.insert(
             id: id,
             nombreInstitucion: nombreInstitucion,
+            parqueNombre: parqueNombre,
             sectorNombre: sectorNombre,
+            ciudad: ciudad,
             municipio: municipio,
             estado: estado,
             nombreJefe: nombreJefe,
@@ -5904,6 +6689,8 @@ class $$ConfigSettingsTableTableManager extends RootTableManager<
             jefeCargo: jefeCargo,
             usuario: usuario,
             password: password,
+            preguntaSeguridad: preguntaSeguridad,
+            respuestaSeguridad: respuestaSeguridad,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -10793,6 +11580,8 @@ typedef $$IncidenciasTableProcessedTableManager = ProcessedTableManager<
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$UsuariosSistemaTableTableManager get usuariosSistema =>
+      $$UsuariosSistemaTableTableManager(_db, _db.usuariosSistema);
   $$ConfigSettingsTableTableManager get configSettings =>
       $$ConfigSettingsTableTableManager(_db, _db.configSettings);
   $$RangosTableTableManager get rangos =>

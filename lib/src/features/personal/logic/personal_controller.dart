@@ -50,14 +50,13 @@ class PersonalController extends ChangeNotifier {
   }
 
   // ==========================================================
-  // 2. CREACIÓN (CREATE)
+  // 2. CREACIÓN (CREATE) Y REACTIVACIÓN (SOFT DELETE BYPASS)
   // ==========================================================
 
   Future<void> registrarFuncionarioCompleto({
     required String nombres,
     required String apellidos,
     required String cedula,
-    // CAMBIO: Ahora son opcionales (nullable)
     String? rango,
     int? rangoId,
     DateTime? fechaNacimiento,
@@ -70,29 +69,96 @@ class PersonalController extends ChangeNotifier {
     required List<dynamic> familiares,
     required List<dynamic> hijos,
   }) async {
-    await _db.transaction(() async {
-      // 1. Insertar Funcionario
-      final funcionarioId = await _db.into(_db.funcionarios).insert(
+    // Limpieza preventiva de la cédula
+    final cedulaLimpia = cedula.replaceAll('.', '').trim();
+
+    // 1. Verificamos si la cédula ya existe en el sistema
+    final existente = await (_db.select(_db.funcionarios)
+          ..where((t) => t.cedula.equals(cedulaLimpia)))
+        .getSingleOrNull();
+
+    if (existente != null) {
+      if (existente.estaActivo == false) {
+        // ESTÁ INACTIVO (Borrado lógicamente). Lo revivimos.
+        await _db.transaction(() async {
+          // Actualizamos sus datos y lo ponemos activo
+          await (_db.update(_db.funcionarios)
+                ..where((t) => t.id.equals(existente.id)))
+              .write(
             FuncionariosCompanion(
-              nombres: drift.Value(nombres),
-              apellidos: drift.Value(apellidos),
-              cedula: drift.Value(cedula),
+              nombres: drift.Value(nombres.trim()),
+              apellidos: drift.Value(apellidos.trim()),
               rango: drift.Value(rango),
               rangoId: drift.Value(rangoId),
               fechaNacimiento: drift.Value(fechaNacimiento),
               fechaIngreso: drift.Value(fechaIngreso),
-              telefono: drift.Value(telefono),
+              telefono: drift.Value(telefono?.trim()),
               diasLibresPreferidos: drift.Value(diasLibresPreferidos),
               fotoPath: drift.Value(fotoPath),
               estaActivo: const drift.Value(true),
             ),
           );
 
-      // 2. Insertar Relaciones (Lógica privada para reutilizar código)
-      await _insertarRelaciones(
-          funcionarioId, estudios, cursos, familiares, hijos);
-    });
-    notifyListeners();
+          // Borramos su historial viejo de relaciones
+          await (_db.delete(_db.estudiosAcademicos)
+                ..where((t) => t.funcionarioId.equals(existente.id)))
+              .go();
+          await (_db.delete(_db.cursosCertificados)
+                ..where((t) => t.funcionarioId.equals(existente.id)))
+              .go();
+          await (_db.delete(_db.familiares)
+                ..where((t) => t.funcionarioId.equals(existente.id)))
+              .go();
+          await (_db.delete(_db.hijos)
+                ..where((t) => t.funcionarioId.equals(existente.id)))
+              .go();
+
+          // Insertamos las nuevas relaciones
+          await _insertarRelaciones(
+              existente.id, estudios, cursos, familiares, hijos);
+        });
+
+        notifyListeners();
+        return; // Salimos exitosamente
+      } else {
+        // Está activo. Lanzamos un error amigable para la interfaz.
+        throw Exception(
+            "La cédula $cedulaLimpia ya se encuentra registrada y activa en el sistema.");
+      }
+    }
+
+    // 2. Si no existe, hacemos la inserción normal
+    try {
+      await _db.transaction(() async {
+        final funcionarioId = await _db.into(_db.funcionarios).insert(
+              FuncionariosCompanion(
+                nombres: drift.Value(nombres.trim()),
+                apellidos: drift.Value(apellidos.trim()),
+                cedula: drift.Value(cedulaLimpia),
+                rango: drift.Value(rango),
+                rangoId: drift.Value(rangoId),
+                fechaNacimiento: drift.Value(fechaNacimiento),
+                fechaIngreso: drift.Value(fechaIngreso),
+                telefono: drift.Value(telefono?.trim()),
+                diasLibresPreferidos: drift.Value(diasLibresPreferidos),
+                fotoPath: drift.Value(fotoPath),
+                estaActivo: const drift.Value(true),
+              ),
+            );
+
+        await _insertarRelaciones(
+            funcionarioId, estudios, cursos, familiares, hijos);
+      });
+      notifyListeners();
+    } catch (e) {
+      // CORRECCIÓN: Manejo universal de excepciones de SQLite
+      final errorStr = e.toString();
+      if (errorStr.contains('2067') ||
+          errorStr.contains('UNIQUE constraint failed')) {
+        throw Exception("Esta cédula ya está registrada en la base de datos.");
+      }
+      throw Exception("Error de base de datos: $errorStr");
+    }
   }
 
   // ==========================================================
@@ -104,7 +170,6 @@ class PersonalController extends ChangeNotifier {
     required String nombres,
     required String apellidos,
     required String cedula,
-    // CAMBIO: Ahora son opcionales (nullable)
     String? rango,
     int? rangoId,
     DateTime? fechaNacimiento,
@@ -118,18 +183,30 @@ class PersonalController extends ChangeNotifier {
     required List<Map<String, dynamic>> familiares,
     required List<Map<String, dynamic>> hijos,
   }) async {
+    final cedulaLimpia = cedula.replaceAll('.', '').trim();
+
+    // CORRECCIÓN: Uso de .not() en lugar de isNot() para Drift
+    final conflicto = await (_db.select(_db.funcionarios)
+          ..where((t) => t.cedula.equals(cedulaLimpia) & t.id.equals(id).not()))
+        .getSingleOrNull();
+
+    if (conflicto != null) {
+      throw Exception(
+          "La cédula $cedulaLimpia ya está asignada a otro funcionario.");
+    }
+
     await _db.transaction(() async {
       // 1. Actualizar Datos Básicos
       await (_db.update(_db.funcionarios)..where((t) => t.id.equals(id))).write(
         FuncionariosCompanion(
-          nombres: drift.Value(nombres),
-          apellidos: drift.Value(apellidos),
-          cedula: drift.Value(cedula),
+          nombres: drift.Value(nombres.trim()),
+          apellidos: drift.Value(apellidos.trim()),
+          cedula: drift.Value(cedulaLimpia),
           rango: drift.Value(rango),
           rangoId: drift.Value(rangoId),
           fechaNacimiento: drift.Value(fechaNacimiento),
           fechaIngreso: drift.Value(fechaIngreso),
-          telefono: drift.Value(telefono),
+          telefono: drift.Value(telefono?.trim()),
           diasLaboralesSemanales: drift.Value(diasLaboralesSemanales ?? 4),
           diasLibresPreferidos: drift.Value(diasLibresPreferidos),
           fotoPath: drift.Value(fotoPath),

@@ -61,26 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        // MODIFICACIÓN: Logo en el AppBar con manejo de overflow
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/logo_inparques.png',
-              height: 32,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.park), // Fallback de seguridad
-            ),
-            const SizedBox(width: 10),
-            const Flexible(
-              child: Text(
-                "Sistema Inparques",
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        title: const Text("Sistema Inparques"),
         centerTitle: true,
         backgroundColor: Colors.green.shade800,
         foregroundColor: Colors.white,
@@ -101,20 +82,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       // SOLUCIÓN RESPONSIVE: LayoutBuilder detecta el tamaño de la ventana
       body: LayoutBuilder(builder: (context, constraints) {
+        // Lógica de Breakpoints (Puntos de quiebre)
+        // Si el ancho es mayor a 900px (Desktop), usamos hasta 4 columnas
+        // Si es mayor a 600px (Tablet), 3 columnas
+        // Si es menor (Celular), 2 columnas
         int columnas = 2;
         double anchoMaximo = double.infinity;
 
         if (constraints.maxWidth > 900) {
           columnas = 4;
-          anchoMaximo = 1000;
+          anchoMaximo =
+              1000; // En PC limitamos el ancho para que no se estire infinito
         } else if (constraints.maxWidth > 600) {
           columnas = 3;
           anchoMaximo = 800;
         }
 
         return Center(
+          // 1. Centramos todo el contenido en pantalla grande
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: anchoMaximo),
+            constraints:
+                BoxConstraints(maxWidth: anchoMaximo), // 2. Ponemos límite
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
@@ -150,6 +138,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: Colors.black87),
                             ),
                             const SizedBox(height: 10),
+                            // En móvil usamos Row, pero si es muy estrecho podría necesitar ajuste
+                            // Por ahora Row funciona bien para 3 stats
                             Row(
                               children: [
                                 Expanded(
@@ -213,7 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: columnas,
+                          crossAxisCount: columnas, // 3. Columnas dinámicas
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
                           childAspectRatio: 1.3,
@@ -289,7 +279,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             decoration: const BoxDecoration(
               color: Colors.green,
               image: DecorationImage(
-                // Si tienes un pattern, genial. Si no, se ignorará sin crashear.
                 image: AssetImage('assets/images/pattern.png'),
                 fit: BoxFit.cover,
                 opacity: 0.1,
@@ -298,22 +287,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // MODIFICACIÓN: Logo de INPARQUES en el Drawer en lugar del Icon(Icons.park)
-                CircleAvatar(
-                  radius: 35,
-                  backgroundColor: Colors.white,
-                  child: Padding(
-                    padding: const EdgeInsets.all(
-                        4.0), // Pequeño margen interno para que respire
-                    child: Image.asset(
-                      'assets/images/logo_inparques.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.park, size: 40, color: Colors.green),
-                    ),
+                // MEJORA UI: Contenedor moderno con relieve en lugar del CircleAvatar
+                Container(
+                  height: 85,
+                  width: 85,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/images/logo_inparques.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.park,
+                          size: 45, color: Colors.green);
+                    },
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
                 Text(
                   config?.sectorNombre ?? "Nombre del Parque",
                   style: const TextStyle(
@@ -491,7 +490,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               blurRadius: 5,
               offset: const Offset(0, 3)),
         ],
@@ -511,7 +510,7 @@ class _StatCard extends StatelessWidget {
             label,
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 1, // Evita overflow en pantallas pequeñas
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -546,7 +545,7 @@ class _MenuTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 36, color: color),

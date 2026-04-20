@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // 1. Librería visual
-import 'package:intl/date_symbol_data_local.dart'; // 2. NECESARIO PARA EL CALENDARIO
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Importaciones de datos
 import 'src/data/local/app_database.dart';
@@ -14,9 +14,13 @@ import 'src/features/dashboard/logic/dashboard_controller.dart';
 import 'src/features/planning/logic/config_types_controller.dart';
 import 'src/features/calendar/logic/calendar_controller.dart';
 import 'src/features/incidents/logic/incidents_controller.dart';
+// NUEVO: Controlador de copias de seguridad
+import 'src/features/backup/logic/backup_controller.dart';
 
 // Importaciones de Pantallas (Screens)
 import 'src/features/auth/presentation/screens/login_screen.dart';
+import 'src/features/auth/presentation/screens/recovery_screen.dart';
+import 'src/features/auth/presentation/screens/register_screen.dart'; // NUEVO
 import 'src/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'src/features/personal/presentation/screens/personal_list_screen.dart';
 import 'src/features/planning/presentation/screens/planning_screen.dart';
@@ -28,13 +32,10 @@ import 'src/features/incidents/presentation/screens/report_incident_screen.dart'
 import 'src/features/config/presentation/screens/backup_screen.dart';
 
 void main() async {
-  // <--- Convertir main a async
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 3. INICIALIZAR FORMATOS DE FECHA EN ESPAÑOL ANTES DE ARRANCAR
   await initializeDateFormatting('es_ES', null);
 
-  // Instancia única de la base de datos
   final database = AppDatabase();
 
   runApp(
@@ -48,6 +49,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ConfigTypesController(database)),
         ChangeNotifierProvider(create: (_) => CalendarController(database)),
         ChangeNotifierProvider(create: (_) => IncidentsController(database)),
+        // NUEVO: Inyección del controlador de respaldos
+        ChangeNotifierProvider(create: (_) => BackupController(database)),
       ],
       child: const InparquesApp(),
     ),
@@ -62,19 +65,16 @@ class InparquesApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sistema de Gestión - Inparques',
-
-      // CONFIGURACIÓN DE IDIOMA
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('es', 'ES'), // Español España
-        Locale('es', 'VE'), // Español Venezuela
+        Locale('es', 'ES'),
+        Locale('es', 'VE'),
       ],
-      locale: const Locale('es', 'ES'), // Forzar Español
-
+      locale: const Locale('es', 'ES'),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -91,6 +91,8 @@ class InparquesApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
+        '/recovery': (context) => const RecoveryScreen(),
+        '/register': (context) => const RegisterScreen(), // NUEVA RUTA
         '/dashboard': (context) => const DashboardScreen(),
         '/personal': (context) => const PersonalListScreen(),
         '/planning': (context) => const PlanningScreen(),

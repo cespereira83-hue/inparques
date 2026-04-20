@@ -20,7 +20,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
   final _nombreActividadController = TextEditingController();
   final _lugarTextoController = TextEditingController();
 
-  final _cupoSemanalController = TextEditingController();
+  final _diasLaborarController = TextEditingController(text: "4");
   final _factorDescansoController = TextEditingController(text: "2");
 
   bool _esPernocta = false;
@@ -33,8 +33,8 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
   Set<DateTime> _diasConGuardia = {};
 
   // Fechas (Pernocta)
-  DateTime _fechaInicio = DateTime.now();
-  DateTime _fechaFin = DateTime.now();
+  late DateTime _fechaInicio;
+  late DateTime _fechaFin;
 
   int? _selectedUbicacionId;
 
@@ -51,14 +51,15 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     super.initState();
     _isEditing = widget.actividadId != null;
 
-    // MODIFICACIÓN: Tomamos la fecha del controlador para mantener la continuidad
-    final now = context.read<PlanningController>().focusedDay;
+    final controller = context.read<PlanningController>();
+    final targetDate = controller.focusedDay;
 
-    _inicioSemana = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    _fechaActual = now;
-    _fechaInicio = now;
-    _fechaFin = now.add(const Duration(days: 3));
+    _inicioSemana = DateTime(targetDate.year, targetDate.month, targetDate.day)
+        .subtract(Duration(days: targetDate.weekday - 1));
+    _fechaActual = targetDate;
+
+    _fechaInicio = targetDate;
+    _fechaFin = targetDate.add(const Duration(days: 3));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _cargarDatosIniciales();
@@ -69,7 +70,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
   void dispose() {
     _nombreActividadController.dispose();
     _lugarTextoController.dispose();
-    _cupoSemanalController.dispose();
+    _diasLaborarController.dispose();
     _factorDescansoController.dispose();
     super.dispose();
   }
@@ -97,6 +98,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
 
       await _refrescarPersonal();
     } catch (e) {
+      debugPrint("Error cargando datos: $e");
       if (mounted) _showError("Error al cargar datos: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -141,7 +143,6 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
       for (var f in detalle.funcionarios) {
         _seleccionadosIds.add(f.id);
       }
-
       if (detalle.jefeServicio != null) {
         _jefeServicioId = detalle.jefeServicio!.id;
       } else if (act.jefeServicioId != null) {
@@ -160,10 +161,6 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
   Future<void> _actualizarEstadoSemanal() async {
     final controller = context.read<PlanningController>();
     final dias = await controller.obtenerDiasConGuardiaEnSemana(_inicioSemana);
-
-    final cupoGuardado = controller.obtenerCupoDeSemana(_inicioSemana);
-    _cupoSemanalController.text = cupoGuardado.toString();
-
     setState(() {
       _diasConGuardia = dias;
     });
@@ -171,24 +168,20 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
 
   Future<void> _refrescarPersonal() async {
     final controller = context.read<PlanningController>();
-    int? cupoOverride = int.tryParse(_cupoSemanalController.text);
+    int? cupoOverride = int.tryParse(_diasLaborarController.text);
     final fechaConsulta = _esPernocta ? _fechaInicio : _fechaActual;
 
-    try {
-      final lista = await controller.obtenerPersonalConMetadata(
-        fecha: fechaConsulta,
-        esPernocta: _esPernocta,
-        cupoOverride: cupoOverride,
-        actividadEditandoId: widget.actividadId,
-      );
+    final lista = await controller.obtenerPersonalConMetadata(
+      fecha: fechaConsulta,
+      esPernocta: _esPernocta,
+      cupoOverride: cupoOverride,
+      actividadEditandoId: widget.actividadId,
+    );
 
-      if (mounted) {
-        setState(() {
-          _personalConMetadata = lista;
-        });
-      }
-    } catch (e) {
-      // Error silencioso en UI
+    if (mounted) {
+      setState(() {
+        _personalConMetadata = lista;
+      });
     }
   }
 
@@ -201,7 +194,8 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     if (picked != null) {
       setState(() {
         _inicioSemana = picked.subtract(Duration(days: picked.weekday - 1));
-        _fechaActual = _inicioSemana;
+        _fechaActual = picked;
+        context.read<PlanningController>().setFocusedDay(_fechaActual);
       });
       await _actualizarEstadoSemanal();
       await _refrescarPersonal();
@@ -229,8 +223,8 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     final nuevaFecha = _inicioSemana.add(Duration(days: diaIndex));
     setState(() {
       _fechaActual = nuevaFecha;
+      context.read<PlanningController>().setFocusedDay(_fechaActual);
     });
-    await _actualizarEstadoSemanal();
     await _refrescarPersonal();
   }
 
@@ -242,8 +236,8 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     setState(() {
       _esPernocta = isOvernight;
       if (isOvernight) {
-        _fechaInicio = DateTime.now();
-        _fechaFin = DateTime.now().add(const Duration(days: 3));
+        _fechaInicio = _fechaActual;
+        _fechaFin = _fechaActual.add(const Duration(days: 3));
       } else {
         _fechaActual = _inicioSemana;
       }
@@ -285,7 +279,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     return "Duración: $noches Noches.\nGenera $diasDescanso días libres.\nDesbloqueo: ${DateFormat('dd/MM').format(fechaDesbloqueo)}";
   }
 
-  Future<void> _guardar() async {
+  Future<void> _guardar({bool avanzarDia = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_seleccionadosIds.isEmpty) {
       _showError("Seleccione personal.");
@@ -358,67 +352,40 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
       dash.actualizarDashboard();
 
       if (mounted) {
-        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing
+                ? "✅ Actividad Actualizada"
+                : "✅ Turno Guardado Exitosamente"),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
 
-        // MODIFICACIÓN: Diálogo interactivo para avanzar al siguiente día (solo para Ordinarias no editadas)
-        if (!_isEditing && !_esPernocta) {
-          final continuar = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              title: const Text("✅ Guardado con éxito"),
-              content: const Text(
-                  "¿Deseas planificar el siguiente día automáticamente?"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text("NO, FINALIZAR"),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text("SÍ, SIGUIENTE DÍA"),
-                ),
-              ],
-            ),
-          );
+        if (_isEditing || _esPernocta) {
+          setState(() => _isLoading = false);
+          Navigator.pop(context);
+        } else {
+          setState(() {
+            _seleccionadosIds.clear();
+            _jefeServicioId = null;
+            _nombreActividadController.clear();
+            _lugarTextoController.clear();
 
-          if (continuar == true) {
-            // Avanzamos un día en el controlador
-            planning.avanzarDiaSiguiente();
-
-            // Actualizamos la UI local para reflejar el nuevo día
-            setState(() {
+            if (avanzarDia) {
               _fechaActual = _fechaActual.add(const Duration(days: 1));
-              _nombreActividadController.clear(); // Limpiamos detalle
-              _seleccionadosIds.clear(); // Deseleccionamos personal
-              _jefeServicioId = null; // Quitamos al jefe
+              planning.setFocusedDay(_fechaActual);
 
-              // Si cruzamos al lunes, actualizamos la semana base
-              if (_fechaActual.weekday == 1) {
+              if (_fechaActual.weekday == DateTime.monday) {
                 _inicioSemana = _fechaActual;
               }
-            });
+            }
+          });
 
-            // Recargamos el estado y personal para el nuevo día
-            await _actualizarEstadoSemanal();
-            await _refrescarPersonal();
-            return; // Salimos de _guardar() sin hacer pop de la pantalla
-          }
-        } else {
-          // Si es edición o pernocta, mostramos un SnackBar simple
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_isEditing
-                  ? "✅ Actividad Actualizada"
-                  : "✅ Guardado Exitoso"),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await _actualizarEstadoSemanal();
+          await _refrescarPersonal();
+          setState(() => _isLoading = false);
         }
-
-        // Cerramos la pantalla si el usuario eligió "NO" o si era edición/pernocta
-        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -435,6 +402,19 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
   }
 
   String _getDayLabel(int weekday) {
+    const d = [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo'
+    ];
+    return d[weekday - 1];
+  }
+
+  String _getShortDayLabel(int weekday) {
     const d = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     return d[weekday - 1];
   }
@@ -477,7 +457,8 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
               final diaFechaNorm =
                   DateTime(diaFecha.year, diaFecha.month, diaFecha.day);
 
-              final bool isSelected = _fechaActual.day == diaFecha.day;
+              final bool isSelected = _fechaActual.day == diaFecha.day &&
+                  _fechaActual.month == diaFecha.month;
               final bool isPlanned =
                   _diasConGuardia.any((d) => d.isAtSameMomentAs(diaFechaNorm));
 
@@ -505,7 +486,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                             ? const Icon(Icons.check,
                                 size: 20, color: Colors.green)
                             : Text(
-                                _getDayLabel(index + 1),
+                                _getShortDayLabel(index + 1),
                                 style: TextStyle(
                                     color: isSelected
                                         ? Colors.white
@@ -533,13 +514,76 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
     );
   }
 
+  Widget _buildBottomActionButtons() {
+    if (_isEditing) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange.shade700,
+          foregroundColor: Colors.white,
+        ),
+        onPressed: () => _guardar(),
+        child: const Text("ACTUALIZAR ACTIVIDAD"),
+      );
+    }
+
+    if (_esPernocta) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.indigo,
+          foregroundColor: Colors.white,
+        ),
+        onPressed: () => _guardar(),
+        child: const Text("CONFIRMAR PERNOCTA"),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Tooltip(
+            message: "Guardar este turno y añadir otro en este mismo día",
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.indigo,
+                  side: const BorderSide(color: Colors.indigo),
+                  padding: const EdgeInsets.symmetric(vertical: 12)),
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: const Text("Mismo\nDía",
+                  textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+              onPressed: () => _guardar(avanzarDia: false),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12)),
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text("Siguiente Día"),
+            onPressed: () => _guardar(avanzarDia: true),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Variable global de la vista para leer el límite de cupo actual ingresado
+    final int limiteCupo = int.tryParse(_diasLaborarController.text) ?? 4;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing
             ? "Editar Actividad"
-            : (_esPernocta ? "Planificar Pernocta" : "Guardia Ordinaria")),
+            : (_esPernocta
+                ? "Planificar Pernocta"
+                : "Planificando ${_getDayLabel(_fechaActual.weekday)} ${_fechaActual.day}")),
         actions: [
           if (_esPernocta)
             IconButton(
@@ -622,11 +666,9 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                           Row(children: [
                             Expanded(
                               flex: 3,
-                              child:
-                                  // ignore: deprecated_member_use
-                                  DropdownButtonFormField<int>(
+                              child: DropdownButtonFormField<int>(
                                 isExpanded: true,
-                                value: _selectedUbicacionId,
+                                initialValue: _selectedUbicacionId,
                                 decoration: const InputDecoration(
                                   labelText: "Puesto / Ubicación",
                                   border: OutlineInputBorder(),
@@ -681,32 +723,21 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                           const SizedBox(height: 10),
                           Row(children: [
                             Expanded(
-                                flex: 1,
+                                flex: 2,
                                 child: TextFormField(
-                                  controller: _cupoSemanalController,
+                                  controller: _diasLaborarController,
                                   keyboardType: TextInputType.number,
                                   decoration: const InputDecoration(
-                                      labelText: "Cupo",
+                                      labelText: "Días a laborar",
                                       border: OutlineInputBorder()),
-                                  onChanged: (val) {
-                                    final intVal = int.tryParse(val);
-                                    if (intVal != null) {
-                                      context
-                                          .read<PlanningController>()
-                                          .guardarCupoDeSemana(
-                                              _inicioSemana, intVal);
-                                    }
-                                    _refrescarPersonal();
-                                  },
+                                  onChanged: (_) => _refrescarPersonal(),
                                 )),
                             const SizedBox(width: 10),
                             Expanded(
                                 flex: 3,
-                                child:
-                                    // ignore: deprecated_member_use
-                                    DropdownButtonFormField<int>(
+                                child: DropdownButtonFormField<int>(
                                   isExpanded: true,
-                                  value: _selectedTipoGuardiaId,
+                                  initialValue: _selectedTipoGuardiaId,
                                   items: _tiposGuardia
                                       .map((t) => DropdownMenuItem(
                                           value: t.id,
@@ -763,13 +794,16 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                           const Padding(
                             padding: EdgeInsets.all(20.0),
                             child: Center(
-                                child: Text("No hay personal disponible")),
+                                child: Text(
+                                    "No hay personal disponible en este rango")),
                           ),
                         ..._personalConMetadata.map((meta) {
                           final f = meta['funcionario'] as Funcionario;
-                          final severity = (meta['severity'] ?? 0) as int;
-                          final statusText =
-                              (meta['statusText'] ?? '') as String;
+                          final severity = meta['severity'] as int;
+                          final statusText = meta['statusText'] as String;
+                          final ultimaPernocta =
+                              meta['ultimaPernocta'] as DateTime?;
+                          final cargaSemanal = meta['cargaSemanal'] as int;
 
                           final isSelected = _seleccionadosIds.contains(f.id);
                           final isLeader = _jefeServicioId == f.id;
@@ -781,11 +815,11 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
 
                           String subtitulo = f.rango ?? 'S/R';
                           if (_esPernocta) {
-                            if (f.ultimaFechaPernocta == null) {
+                            if (ultimaPernocta == null) {
                               subtitulo += " • Nunca (PRIORIDAD)";
                             } else {
                               final dias = DateTime.now()
-                                  .difference(f.ultimaFechaPernocta!)
+                                  .difference(ultimaPernocta)
                                   .inDays;
                               if (dias < 30) {
                                 subtitulo += " • Hace $dias días";
@@ -797,6 +831,12 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                           } else {
                             subtitulo += " • $statusText";
                           }
+
+                          // CÁLCULOS DEL BADGE UX D1
+                          final int restantes = limiteCupo - cargaSemanal > 0
+                              ? limiteCupo - cargaSemanal
+                              : 0;
+                          final bool cupoLleno = cargaSemanal >= limiteCupo;
 
                           return Card(
                             color: cardColor,
@@ -863,6 +903,41 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
+
+                                          // --- BADGE VISUAL DE CARGA DE TRABAJO (SOLO PARA D1) ---
+                                          if (!_esPernocta &&
+                                              severity != 2) ...[
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                  color: cupoLleno
+                                                      ? Colors.red.shade100
+                                                      : Colors.blue.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  border: Border.all(
+                                                      color: cupoLleno
+                                                          ? Colors.red.shade300
+                                                          : Colors
+                                                              .blue.shade200)),
+                                              child: Text(
+                                                cupoLleno
+                                                    ? "[$cargaSemanal/$limiteCupo] Cupo Lleno"
+                                                    : "[$cargaSemanal/$limiteCupo] Faltan: $restantes",
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: cupoLleno
+                                                        ? Colors.red.shade800
+                                                        : Colors.blue.shade800),
+                                              ),
+                                            ),
+                                          ],
+                                          // -------------------------------------------------------
                                         ],
                                       ),
                                     ),
@@ -917,20 +992,7 @@ class _CreateActivityScreenState extends State<CreateActivityScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isEditing
-                              ? Colors.orange.shade700
-                              : (_esPernocta ? Colors.indigo : Colors.green),
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: _guardar,
-                        child: Text(_isEditing
-                            ? "ACTUALIZAR ACTIVIDAD"
-                            : (_esPernocta
-                                ? "CONFIRMAR PERNOCTA"
-                                : "GUARDAR TURNO DEL ${_getDayLabel(_fechaActual.weekday)}")),
-                      ),
+                      child: _buildBottomActionButtons(),
                     ),
                   ),
                 ],

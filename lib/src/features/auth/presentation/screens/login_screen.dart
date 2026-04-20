@@ -12,7 +12,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usuarioController = TextEditingController();
   final _claveController = TextEditingController();
-  bool _isLoggingIn = false;
+
+  // Variables de estado local exigidas por el Skill (Manejo de Estado y Errores)
+  bool _isLoading = false;
   bool _obscureText = true;
 
   @override
@@ -27,113 +29,200 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _claveController.text.trim();
 
     if (usuario.isEmpty || password.isEmpty) {
-      _mostrarSnackBar("Por favor, ingrese sus credenciales");
+      _mostrarSnackBar("Por favor, ingrese usuario y contraseña",
+          esError: true);
       return;
     }
 
-    setState(() => _isLoggingIn = true);
+    // Bloqueamos la UI mientras el controlador consulta a Drift
+    setState(() => _isLoading = true);
 
     try {
+      // Regla de Arquitectura 1: Comunicación exclusiva a través del Controller
       final authController = context.read<AuthController>();
       final exito = await authController.login(usuario, password);
 
+      // Verificación de montaje exigida por el Skill
       if (!mounted) return;
 
       if (exito) {
-        // CORRECCIÓN CRÍTICA:
-        // Antes redirigía a '/' (Login), creando un bucle.
-        // Ahora redirige a '/dashboard' (La pantalla principal).
         Navigator.of(context).pushReplacementNamed('/dashboard');
       } else {
-        _mostrarSnackBar("Usuario o contraseña incorrectos");
+        _mostrarSnackBar("Usuario o contraseña incorrectos", esError: true);
       }
     } catch (e) {
-      _mostrarSnackBar("Error al conectar con el servicio de autenticación");
+      if (!mounted) return;
+      _mostrarSnackBar("Error interno al conectar con el servicio local",
+          esError: true);
     } finally {
-      if (mounted) setState(() => _isLoggingIn = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _mostrarSnackBar(String mensaje) {
+  void _mostrarSnackBar(String mensaje, {bool esError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), duration: const Duration(seconds: 2)),
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: esError ? Colors.red.shade800 : Colors.green.shade800,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Regla de UI/UX: Responsividad y protección de Notches en móviles
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.shield, size: 100, color: Colors.green),
-              const SizedBox(height: 24),
-              const Text(
-                "Sistema Inparques",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 48),
-              TextField(
-                controller: _usuarioController,
-                decoration: InputDecoration(
-                  labelText: "Usuario",
-                  prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onSubmitted: (_) => _handleLogin(),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _claveController,
-                obscureText: _obscureText,
-                decoration: InputDecoration(
-                  labelText: "Contraseña",
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () =>
-                        setState(() => _obscureText = !_obscureText),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onSubmitted: (_) => _handleLogin(),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _isLoggingIn ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Regla de UI/UX: Identidad Gráfica con Fallback Seguro
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo_inparques.png',
+                      height: 140,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.park,
+                            size: 100, color: Color(0xFF2E7D32));
+                      },
                     ),
                   ),
-                  child: _isLoggingIn
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text("INICIAR SESIÓN"),
-                ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Sistema Inparques",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Gestión de Personal y Guardias",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Campo de Usuario
+                  TextFormField(
+                    controller: _usuarioController,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      labelText: "Usuario",
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Campo de Contraseña
+                  TextFormField(
+                    controller: _claveController,
+                    enabled: !_isLoading,
+                    obscureText: _obscureText,
+                    decoration: InputDecoration(
+                      labelText: "Contraseña",
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      // Regla de UI/UX: Seguridad Visual (Toggle View)
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: Colors.grey,
+                        ),
+                        onPressed: _isLoading
+                            ? null
+                            : () =>
+                                setState(() => _obscureText = !_obscureText),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onFieldSubmitted: (_) => _handleLogin(),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Botón de Inicio de Sesión
+                  SizedBox(
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              "INICIAR SESIÓN",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Enlaces a los otros flujos del Skill (Recuperación y Registro)
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.pushNamed(context, '/recovery'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade700),
+                    child:
+                        const Text("¿Olvidó su contraseña? Recuperar acceso"),
+                  ),
+                  const Divider(height: 32),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.pushNamed(context, '/register'),
+                    icon: const Icon(Icons.person_add_alt_1, size: 20),
+                    label: const Text("Crear cuenta de Operador"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF2E7D32),
+                      side: const BorderSide(color: Color(0xFF2E7D32)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

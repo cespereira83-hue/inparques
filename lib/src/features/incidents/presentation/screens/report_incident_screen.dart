@@ -1,17 +1,18 @@
-import 'dart:io'; // Para guardar el archivo
-import 'dart:typed_data'; // Para manejar los bytes del PDF
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
-import 'package:pdf/pdf.dart'; // Para PdfPageFormat
-import 'package:file_picker/file_picker.dart'; // Súper Diálogo: Guardar Como
-import 'package:path_provider/path_provider.dart'; // Súper Diálogo: Descarga Rápida
+import 'package:pdf/pdf.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../data/local/app_database.dart';
-import '../../logic/incidents_controller.dart';
+import '../../logic/incidents_controller.dart'; // Mantengo tu import original con "s"
 import '../../logic/acta_generator.dart';
+import '../../../planning/logic/planning_controller.dart'; // Añadido para la inteligencia del acta
 
 // ============================================================================
 // HELPER PARA EXPORTACIÓN: Súper Diálogo (Imprimir, Guardar Como, Descarga)
@@ -20,12 +21,11 @@ Future<void> _mostrarOpcionesSalidaPdf(
   BuildContext context,
   Uint8List bytes,
   String nombreArchivo, {
-  PdfPageFormat format = PdfPageFormat.a4,
+  PdfPageFormat format = PdfPageFormat.letter, // Cambiado a Letter para actas
 }) async {
   await showDialog(
     context: context,
-    barrierDismissible:
-        false, // Evita que se cierre tocando afuera para no perder el PDF
+    barrierDismissible: false,
     builder: (ctx) => AlertDialog(
       title: const Text("Acta Generada con Éxito",
           style: TextStyle(fontWeight: FontWeight.bold)),
@@ -153,7 +153,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     super.dispose();
   }
 
-  // --- CARGA DE DATOS ---
+  // --- CARGA DE DATOS (MANTENIDO TU CÓDIGO ORIGINAL) ---
 
   Future<void> _cargarActividades() async {
     setState(() => _isLoading = true);
@@ -189,7 +189,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     }
   }
 
-  // --- ACCIONES ---
+  // --- ACCIONES CORREGIDAS (Llamando al PlanningController y Map<String, dynamic>) ---
 
   Future<void> _generarActa() async {
     if (!_formKey.currentState!.validate()) return;
@@ -201,10 +201,11 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final ctrl = context.read<IncidentsController>();
+      final incCtrl = context.read<IncidentsController>();
+      final planCtrl = context.read<PlanningController>();
 
-      // 1. Guardar en Base de Datos (Genera ID de incidencia y Redacción Automática)
-      final incidenciaId = await ctrl.registrarInasistencia(
+      // 1. Guardar en Base de Datos usando tu controlador original de incidencias
+      final incidenciaId = await incCtrl.registrarInasistencia(
         actividadId: _selectedActividadId!,
         funcionarioId: _selectedInasistenteId!,
         testigo1Id: _selectedTestigo1Id,
@@ -212,24 +213,28 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
         observaciones: _observacionesController.text,
       );
 
-      // 2. Preparar Datos Completos (DTO)
-      final actaData = await ctrl.prepararDatosActa(incidenciaId);
+      if (!mounted) return;
 
-      // 3. Generar PDF Vectorizado
+      // 2. Extraer datos con inteligencia usando el PlanningController (Devuelve Map)
+      final actaData = await planCtrl.obtenerDatosActaCompleta(incidenciaId);
+
+      if (!mounted) return;
+
+      // 3. Generar PDF Vectorizado con la nueva lógica Legal
       final pdfBytes = await ActaGenerator().generate(actaData);
       final nombreArchivo = 'Acta_Inasistencia_$incidenciaId.pdf';
 
+      if (!mounted) return;
+
+      // Apagamos el loading para que el diálogo se vea bien
+      setState(() => _isLoading = false);
+
+      // 4. Mostrar el Súper Diálogo de Exportación
+      await _mostrarOpcionesSalidaPdf(context, pdfBytes, nombreArchivo);
+
+      // 5. Cerrar la pantalla de registro después de interactuar con el diálogo
       if (mounted) {
-        // Apagamos el loading para que el diálogo se vea bien
-        setState(() => _isLoading = false);
-
-        // 4. Mostrar el Súper Diálogo de Exportación
-        await _mostrarOpcionesSalidaPdf(context, pdfBytes, nombreArchivo);
-
-        // 5. Cerrar la pantalla de registro después de interactuar con el diálogo
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -286,7 +291,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<int>(
-                    initialValue: _selectedActividadId,
+                    value: _selectedActividadId,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: "Actividades Pasadas",
@@ -335,7 +340,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                                   color: Colors.red)),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<int>(
-                            initialValue: _selectedInasistenteId,
+                            value: _selectedInasistenteId,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               filled: true,
@@ -346,7 +351,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                               return DropdownMenuItem(
                                 value: f.id,
                                 child: Text(
-                                    "${f.rango} ${f.nombres} ${f.apellidos}"),
+                                    "${f.rango ?? ''} ${f.nombres} ${f.apellidos}"),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -378,7 +383,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<int>(
-                            initialValue: _selectedTestigo1Id,
+                            value: _selectedTestigo1Id,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: "Testigo 1 (Opcional)",
@@ -404,7 +409,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: DropdownButtonFormField<int>(
-                            initialValue: _selectedTestigo2Id,
+                            value: _selectedTestigo2Id,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: "Testigo 2 (Opcional)",
@@ -429,11 +434,12 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                       controller: _observacionesController,
                       maxLines: 3,
                       decoration: const InputDecoration(
-                        labelText: "Observaciones Adicionales (Opcional)",
+                        labelText: "Descripción / Motivo (Obligatorio)",
                         border: OutlineInputBorder(),
                         hintText:
-                            "Ej: Presentó justificativo médico posterior...",
+                            "Ej: No se presentó a su guardia sin notificar justificación alguna...",
                       ),
+                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
                     ),
 
                     const SizedBox(height: 40),
